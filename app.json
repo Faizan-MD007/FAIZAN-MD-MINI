@@ -1,0 +1,60 @@
+{
+  "name": "FAIZAN-MD-MINI",
+  "description": "FAIZAN-MD Mini WhatsApp Bot — pairing-code + MongoDB session (mini style)",
+  "logo": "https://files.catbox.moe/ejufwa.jpg",
+  "keywords": ["FAIZAN-MD", "FAIZAN-MD-MINI", "whatsapp-bot", "baileys", "mini-bot"],
+  "success_url": "/",
+  "stack": "container",
+  "env": {
+    "SESSION_ID": {
+      "description": "Session name/id for this deployment.",
+      "required": false,
+      "value": "FAIZAN-MD-MINI"
+    },
+    "MONGODB_URI": {
+      "description": "Your MongoDB Atlas connection string (sessions store here).",
+      "required": true,
+      "value": ""
+    },
+    "OWNER_NUMBER": {
+      "description": "Owner WhatsApp number with country code.",
+      "required": false,
+      "value": "923266105873"
+    },
+    "PREFIX": {
+      "description": "Command prefix.",
+      "required": false,
+      "value": "."
+    },
+    "WORK_TYPE": {
+      "description": "Bot work mode: public | private | group | inbox.",
+      "required": false,
+      "value": "public"
+    },
+    "AUTO_VIEW_STATUS": {
+      "description": "Auto view WhatsApp statuses.",
+      "required": false,
+      "value": "true"
+    },
+    "AUTO_LIKE_STATUS": {
+      "description": "Auto like statuses.",
+      "required": false,
+      "value": "true"
+    },
+    "ANTI_CALL": {
+      "description": "Auto reject incoming calls.",
+      "required": false,
+      "value": "false"
+    },
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Optional Telegram bot token for notifications.",
+      "required": false,
+      "value": ""
+    },
+    "TELEGRAM_CHAT_ID": {
+      "description": "Optional Telegram chat id for notifications.",
+      "required": false,
+      "value": ""
+    }
+  }
+}
