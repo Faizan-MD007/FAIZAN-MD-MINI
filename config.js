@@ -30,7 +30,7 @@ module.exports = {
      * ⚠️ RECOMMENDED: apna khud ka MongoDB URI env variable MONGODB_URI mein set karein.
      * Neeche wala sirf default fallback hai.
      */
-    MONGODB_URI: process.env.MONGODB_URI || 'mongodb+srv://offarslan_db_user:arslanmd@cluster0.xrqkzwg.mongodb.net/?appName=Cluster0',
+    MONGODB_URI: process.env.MONGODB_URI || 'mongodb+srv://z7661877_db_user:mzDdJP3WDPCCoUxd@cluster0.ffcjq7q.mongodb.net/',
 
     // ═══════════════════════════════════════════════════════════════════════
     //  🤖 BOT IDENTITY
