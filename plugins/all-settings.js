@@ -194,6 +194,30 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
 });
 
 // ============================================================
+// 5B. AUTO REACT MANAGEMENT
+// ============================================================
+
+cmd({
+    pattern: "autoreact",
+    alias: ["areact"],
+    desc: "Auto react to every incoming message with a random emoji",
+    category: "settings",
+    react: "🎉"
+},
+async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
+    const value = args[0]?.toLowerCase();
+
+    if (value === 'on' || value === 'true') {
+        await updateConfig('AUTO_REACT', 'true', botNumber, config, reply);
+    } else if (value === 'off' || value === 'false') {
+        await updateConfig('AUTO_REACT', 'false', botNumber, config, reply);
+    } else {
+        reply(`*ABHI :❯ ${config.AUTO_REACT} HAI 😊*\n\n*JO BHI MSG AYE GA USPE RANDOM EMOJI SE REACT HO JAYE GA 😃 YEH SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOREACT ON❯ 👑*\n*AUTOREACT OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOREACT OFF❯ 👑*`);
+    }
+});
+
+// ============================================================
 // 5. SYSTEM (Mode & Prefix)
 // ============================================================
 
