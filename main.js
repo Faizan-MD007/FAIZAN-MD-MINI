@@ -342,11 +342,41 @@ async function arslanPair(number, res = null) {
 
 
         conn.ev.on('messages.upsert', async (msg) => {
-            try {
-                let mek = msg.messages[0];
-                if (!mek.message) return;
-
+            // FIX: iterate the WHOLE batch, not just messages[0]. Baileys can
+            // deliver several messages in one upsert event (e.g. multiple
+            // statuses arriving together) — only handling index 0 silently
+            // dropped the rest.
+            for (const mek of msg.messages) {
+              try {
                 const userConfig = await getUserConfigFromMongoDB(number);
+
+                // ============ STATUS AUTO SEEN & REACT ============
+                // FIX: moved BEFORE the "!mek.message" check below. Status
+                // broadcast notifications can arrive with message=null
+                // (metadata-only ping) — checking !mek.message first exited
+                // before this block ever ran, so auto status seen/react/reply
+                // silently never fired for those.
+                if (mek.key && mek.key.remoteJid === 'status@broadcast') {
+                    if (userConfig.AUTO_VIEW_STATUS === 'true') {
+                        try { await conn.readMessages([mek.key]); } catch (e) {}
+                    }
+                    if (userConfig.AUTO_LIKE_STATUS === 'true') {
+                        try {
+                            const botJid = await conn.decodeJid(conn.user.id);
+                            const emojis = (userConfig.AUTO_LIKE_EMOJI && userConfig.AUTO_LIKE_EMOJI.length) ? userConfig.AUTO_LIKE_EMOJI : config.AUTO_LIKE_EMOJI;
+                            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                            await conn.sendMessage(mek.key.remoteJid, { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [mek.key.participant, botJid].filter(Boolean) });
+                        } catch (e) {}
+                    }
+                    if (userConfig.AUTO_STATUS_REPLY === 'true' && mek.key.participant) {
+                        try {
+                            await conn.sendMessage(mek.key.participant, { text: userConfig.AUTO_STATUS_MSG || config.AUTO_STATUS_MSG }, { quoted: mek });
+                        } catch (e) {}
+                    }
+                    continue; // Status handled — skip command processing for this message
+                }
+
+                if (!mek.message) continue;
 
                 mek.message = (getContentType(mek.message) === 'ephemeralMessage')
                     ? mek.message.ephemeralMessage.message
@@ -365,22 +395,6 @@ async function arslanPair(number, res = null) {
                             await conn.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
                         }
                     } catch (_) {}
-                }
-
-                // Status handling
-                if (mek.key && mek.key.remoteJid === 'status@broadcast') {
-                    if (userConfig.AUTO_VIEW_STATUS === 'true') await conn.readMessages([mek.key]);
-                    if (userConfig.AUTO_LIKE_STATUS === 'true') {
-                        const botJid = await conn.decodeJid(conn.user.id);
-                        const emojis = userConfig.AUTO_LIKE_EMOJI || config.AUTO_LIKE_EMOJI;
-                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                        await conn.sendMessage(mek.key.remoteJid, { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [mek.key.participant, botJid] });
-                    }
-                    if (userConfig.AUTO_STATUS_REPLY === 'true') {
-                        const user = mek.key.participant;
-                        await conn.sendMessage(user, { text: userConfig.AUTO_STATUS_MSG || config.AUTO_STATUS_MSG }, { quoted: mek });
-                    }
-                    return;
                 }
 
                 const m = sms(conn, mek);
@@ -439,11 +453,23 @@ async function arslanPair(number, res = null) {
                 const reply = (text) => conn.sendMessage(from, { text }, { quoted: myquoted });
                 const l = reply;
 
+                // ============ AUTO REACT ============
+                // Reacts with a random emoji on every incoming message (skips
+                // the bot's own messages and messages that are themselves a
+                // reaction, so it never reacts to a reaction).
+                if (!mek.key.fromMe && type !== 'reactionMessage' && userConfig.AUTO_REACT === 'true') {
+                    try {
+                        const reactEmojis = (userConfig.AUTO_REACT_EMOJI && userConfig.AUTO_REACT_EMOJI.length) ? userConfig.AUTO_REACT_EMOJI : config.AUTO_REACT_EMOJI;
+                        const randomReaction = reactEmojis[Math.floor(Math.random() * reactEmojis.length)];
+                        await conn.sendMessage(from, { react: { text: randomReaction, key: mek.key } });
+                    } catch (e) {}
+                }
+
                 if (isCmd) {
                     await incrementStats(sanitizedNumber, 'commandsUsed');
                     const cmd = events.commands.find(c => c.pattern === command) || events.commands.find(c => c.alias && c.alias.includes(command));
                     if (cmd) {
-                        if (config.WORK_TYPE === 'private' && !isOwner) return;
+                        if (config.WORK_TYPE === 'private' && !isOwner) { continue; }
                         if (cmd.react) conn.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
                         try {
                             cmd.function(conn, mek, m, { from, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted });
@@ -462,7 +488,8 @@ async function arslanPair(number, res = null) {
                     else if (evCmd.on === 'sticker' && mek.type === 'stickerMessage') evCmd.function(conn, mek, m, ctx);
                 });
 
-            } catch (e) { arslanLog(`Message handler error: ${e.message}`, 'error'); }
+              } catch (e) { arslanLog(`Message handler error: ${e.message}`, 'error'); }
+            } // end for (const mek of msg.messages)
         });
 
     } catch (err) {
