@@ -65,6 +65,21 @@ module.exports = {
     AUTO_STATUS_MSG: process.env.AUTO_STATUS_MSG || '*SEEN YOUR STATUS BY FAIZAN-MD* 🤗',
 
     // ═══════════════════════════════════════════════════════════════════════
+    //  😄 AUTO REACT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    AUTO_REACT: process.env.AUTO_REACT || 'false',
+    AUTO_REACT_EMOJI: ['❤️', '🔥', '😂', '👍', '🎉', '😍', '💯', '👑'],
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  🔗 ANTI-LINK
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Groups only — admin-enabled via .antilink on/off. Warns + deletes on
+     *  first offense, removes the sender from the group on second offense. */
+    ANTI_LINK: process.env.ANTI_LINK || 'false',
+
+    // ═══════════════════════════════════════════════════════════════════════
     //  💬 PRESENCE & CHAT SETTINGS
     // ═══════════════════════════════════════════════════════════════════════
 
