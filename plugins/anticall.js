@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const config = require('../config');
+const { faizan } = require('../lib/style');
 
 
 cmd({
@@ -16,11 +17,11 @@ async (conn, mek, m, { from, args, isCreator, reply }) => {
     const status = args[0]?.toLowerCase();
     if (status === "on") {
         config.ANTI_CALL = "true";
-        return reply("*👑 ANTI-CALL ACTIVATED 👑*");
+        return reply(faizan('ANTI-CALL', 'Activated ✅', '🟢'));
     } else if (status === "off") {
         config.ANTI_CALL = "false";
-        return reply("*👑 ANTI-CALL DE-ACTIVATED 👑*");
+        return reply(faizan('ANTI-CALL', 'De-activated ❌', '🔴'));
     } else {
-        return reply(`*ESE LIKHO ☺️*\n *❮ANTI-CALL ON❯*`);
+        return reply(faizan('ANTI-CALL', config.ANTI_CALL === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .anticall on/off'));
     }
 });
