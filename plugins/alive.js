@@ -3,7 +3,7 @@ const moment = require("moment");
 const { fakevCard } = require('../lib/fakevCard');
 
 let botStartTime = Date.now(); // Recording the start time of the bot
-const ALIVE_IMG = "https://files.catbox.moe/6a48t4.png"; // Make sure this URL is valid
+const ALIVE_IMG = "https://files.catbox.moe/npizv8.jpg"; // Make sure this URL is valid
 
 cmd({
     pattern: "alive",
@@ -51,7 +51,7 @@ cmd({
                 forwardingScore: 999,
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363348739987203@newsletter',
+                    newsletterJid: '120363425143124298@newsletter',
                     newsletterName: 'ꜰᴀɪᴢᴀɴ-ᴍᴅ',
                     serverMessageId: 143
                 }
