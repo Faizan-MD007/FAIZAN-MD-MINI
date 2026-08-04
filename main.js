@@ -357,20 +357,26 @@ async function arslanPair(number, res = null) {
                 // before this block ever ran, so auto status seen/react/reply
                 // silently never fired for those.
                 if (mek.key && mek.key.remoteJid === 'status@broadcast') {
+                    // FIX: some status notifications carry the poster's jid on
+                    // `mek.participant` (top-level) instead of `mek.key.participant` —
+                    // without this fallback the react/reply target came back empty
+                    // and WhatsApp silently dropped the seen/react/reply.
+                    const statusPoster = mek.key.participant || mek.participant;
+
                     if (userConfig.AUTO_VIEW_STATUS === 'true') {
                         try { await conn.readMessages([mek.key]); } catch (e) {}
                     }
                     if (userConfig.AUTO_LIKE_STATUS === 'true') {
                         try {
-                            const botJid = await conn.decodeJid(conn.user.id);
+                            const botJid = conn.user?.id || conn.user?.jid;
                             const emojis = (userConfig.AUTO_LIKE_EMOJI && userConfig.AUTO_LIKE_EMOJI.length) ? userConfig.AUTO_LIKE_EMOJI : config.AUTO_LIKE_EMOJI;
                             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                            await conn.sendMessage(mek.key.remoteJid, { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [mek.key.participant, botJid].filter(Boolean) });
+                            await conn.sendMessage('status@broadcast', { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [statusPoster, botJid].filter(Boolean) });
                         } catch (e) {}
                     }
-                    if (userConfig.AUTO_STATUS_REPLY === 'true' && mek.key.participant) {
+                    if (userConfig.AUTO_STATUS_REPLY === 'true' && statusPoster) {
                         try {
-                            await conn.sendMessage(mek.key.participant, { text: userConfig.AUTO_STATUS_MSG || config.AUTO_STATUS_MSG }, { quoted: mek });
+                            await conn.sendMessage(statusPoster, { text: userConfig.AUTO_STATUS_MSG || config.AUTO_STATUS_MSG }, { quoted: mek });
                         } catch (e) {}
                     }
                     continue; // Status handled — skip command processing for this message
@@ -431,8 +437,17 @@ async function arslanPair(number, res = null) {
                         groupName = groupMetadata.subject;
                         participants = groupMetadata.participants;
                         groupAdmins = getGroupAdmins(participants);
-                        isBotAdmins = groupAdmins.includes(botNumber2);
-                        isAdmins = groupAdmins.includes(sender);
+                        // FIX: WhatsApp groups can list a participant (including the bot
+                        // itself) under an @lid identity instead of its phone-number jid,
+                        // so a plain `groupAdmins.includes(botNumber2)` missed real admins
+                        // and made a bot that IS a group admin report as not-admin.
+                        // Compare raw numbers, and also check the bot's own LID from creds.
+                        const botLid = ((conn.authState?.creds?.me?.lid || conn.authState?.creds?.account?.lid || '').split('@')[0].split(':')[0]);
+                        isBotAdmins = groupAdmins.some(a => {
+                            const aNum = a.split('@')[0];
+                            return aNum === botNumber || (botLid && botLid.length > 5 && aNum === botLid);
+                        });
+                        isAdmins = groupAdmins.includes(sender) || groupAdmins.some(a => a.split('@')[0] === senderNumber);
                     } catch (_) {}
                 }
 
@@ -442,9 +457,9 @@ async function arslanPair(number, res = null) {
                 const myquoted = {
                     key: { remoteJid: 'status@broadcast', participant: '13135550002@s.whatsapp.net', fromMe: false, id: createSerial(16).toUpperCase() },
                     message: { contactMessage: {
-                        displayName: '© 𝐊αѕнмιяι-𝐉υтт⎯꯭̽',
+                        displayName: '© FAIZAN-MD',
                         vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:FAIZAN-MD BOY\nORG:FAIZAN-MD BOY;\nTEL;type=CELL;type=VOICE;waid=13135550002:13135550002\nEND:VCARD`,
-                        contextInfo: { stanzaId: createSerial(16).toUpperCase(), participant: '0@s.whatsapp.net', quotedMessage: { conversation: '© 𝐊αѕнмιяι-𝐉υтт⎯꯭̽' } }
+                        contextInfo: { stanzaId: createSerial(16).toUpperCase(), participant: '0@s.whatsapp.net', quotedMessage: { conversation: '© FAIZAN-MD' } }
                     }},
                     messageTimestamp: Math.floor(Date.now() / 1000),
                     status: 1, verifiedBizName: 'Meta'
