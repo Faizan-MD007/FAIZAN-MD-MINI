@@ -1,4 +1,5 @@
 const { cmd } = require('../arslan');
+const { faizan } = require('../lib/style');
 
 cmd({
     pattern: "online",
@@ -11,15 +12,15 @@ cmd({
 async (conn, mek, m, { from, quoted, isGroup, isAdmins, isCreator, fromMe, reply }) => {
     try {
         // Check if the command is used in a group
-        if (!isGroup) return reply("YEH COMMAND SIRF GROUPS ME USE KARE 😊*");
+        if (!isGroup) return reply(faizan('ONLINE', 'Groups only', '❌'));
 
         // Check if user is either creator or admin
         if (!isCreator && !isAdmins && !fromMe) {
-            return reply("*YEH COMMAND SIRF MERE LIE HAI 😎 OR GROUP ADMINS BHI YE COMMAND USE KAR SAKTE HAI 😍❣️*");
+            return reply(faizan('ONLINE', 'Admin/Owner only', '❌'));
         }
 
         // Inform user that we're checking
-        await reply("*ONLINE MEMBERS KI LIST TAYAR HO RAHI HAI 😊*\n*THORA SA INTAZAR KAREIN...😊*");
+        await reply(faizan('ONLINE', 'Checking members…', '⏳'));
 
         const onlineMembers = new Set();
         const groupData = await conn.groupMetadata(from);
@@ -64,7 +65,7 @@ async (conn, mek, m, { from, quoted, isGroup, isAdmins, isCreator, fromMe, reply
                 conn.ev.off('presence.update', presenceHandler);
                 
                 if (onlineMembers.size === 0) {
-                    return reply("⚠️ Couldn't detect any online members. They might be hiding their presence.");
+                    return reply(faizan('ONLINE', 'No members detected', '⚠️'));
                 }
                 
                 const onlineArray = Array.from(onlineMembers);
@@ -72,7 +73,7 @@ async (conn, mek, m, { from, quoted, isGroup, isAdmins, isCreator, fromMe, reply
                     `${index + 1}. @${member.split('@')[0]}`
                 ).join('\n');
                 
-                const message = `*👑 ONLINE MEMBERS LIST 👑* (${onlineArray.length}/${groupData.participants.length}):\n\n${onlineList}`;
+                const message = faizan('ONLINE MEMBERS', `${onlineArray.length}/${groupData.participants.length}`, '🟢') + `\n${onlineList}`;
                 
                 await conn.sendMessage(from, { 
                     text: message,
@@ -85,6 +86,6 @@ async (conn, mek, m, { from, quoted, isGroup, isAdmins, isCreator, fromMe, reply
 
     } catch (e) {
         console.error("Error in online command:", e);
-        reply(`An error occurred: ${e.message}`);
+        reply(faizan('ONLINE', 'Error occurred', '❌'));
     }
 });
