@@ -1,5 +1,5 @@
 const { cmd } = require('../arslan');
-const config = require('../config');
+const { faizan } = require('../lib/style');
 
 // ════════════════════════════════════════════════════════════
 // 📁 ANTILINK - In-Memory Storage (no file system = no restart/reset issues)
@@ -37,19 +37,6 @@ const linkPatterns = [
     /https?:\/\/t\.co\/\S+/gi,
     /https?:\/\/\S+\.\S{2,6}(\/\S*)?/gi,   // catch-all generic URL
 ];
-
-function faizan(title, value, status) {
-    return `
-*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 Mini'} ⊱┈─̇─̣╌*
-*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│❀ 🔗 ${title}:* ${value}
-*│❀ ⚙️ 𝐒𝐭𝐚𝐭𝐮𝐬:* ${status}
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-
-> ${config.BOT_FOOTER || '© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜰᴀɪᴢᴀɴ-ᴍᴅ'}
-`;
-}
 
 // =========== ANTILINK ON/OFF COMMAND ===========
 cmd({
