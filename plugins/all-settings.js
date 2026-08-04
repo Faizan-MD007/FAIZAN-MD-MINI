@@ -1,22 +1,24 @@
 const { cmd } = require('../arslan');
 const { updateUserConfig } = require('../lib/database');
+const { faizan } = require('../lib/style');
 
 // Helper function to update config in memory and database
 const updateConfig = async (key, value, botNumber, config, reply) => {
     try {
         // 1. Update in-memory config (Immediate)
         config[key] = value;
-        
+
         // 2. Update in Database (Persistent)
-        const newConfig = { ...config }; 
+        const newConfig = { ...config };
         newConfig[key] = value;
-        
+
         await updateUserConfig(botNumber, newConfig);
-        
-        return reply(`✅ *${key}* has been updated to: *${value}*`);
+
+        const statusIcon = (value === 'true') ? '🟢 ON' : (value === 'false') ? '🔴 OFF' : value;
+        return reply(faizan(key.replace(/_/g, ' '), 'Updated ✅', statusIcon));
     } catch (e) {
         console.error(e);
-        return reply("❌ Error while saving to database.");
+        return reply(faizan(key.replace(/_/g, ' '), 'Update Failed', '⚠️'));
     }
 };
 
@@ -34,13 +36,13 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('AUTO_RECORDING', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('AUTO_RECORDING', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.AUTO_RECORDING} HAI 😊*\n\n*AUTO RECORDING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTORECORDING ON❯ 👑*\n*AUTORECORDING OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTORECORDING OFF❯ 👑*`);
+        reply(faizan('AUTO RECORDING', config.AUTO_RECORDING === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autorecording on/off'));
     }
 });
 
@@ -54,13 +56,13 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('AUTO_TYPING', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('AUTO_TYPING', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.AUTO_TYPING} HAI 😊*\n\n*AUTO TYPING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOTYPING ON❯ 👑*\n*AUTOTYPING OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOTYPING OFF❯ 👑*`);
+        reply(faizan('AUTO TYPING', config.AUTO_TYPING === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autotyping on/off'));
     }
 });
 
@@ -76,15 +78,15 @@ cmd({
     react: "👑"
 },
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
-    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI ☺️*");
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('ANTI_CALL', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('ANTI_CALL', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.AUTO_RECORDING} HAI 😊*\n\n*JO BHI CALL KARE GA KHUD HI REJECT HO JAYE GE 😃 YE SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮ANTICALL ON❯ 👑*\n*ANTICALL OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮ANTICALL OFF❯ 👑*`);
+        reply(faizan('ANTICALL', config.ANTI_CALL === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .anticall on/off'));
     }
 });
 
@@ -101,13 +103,13 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('WELCOME', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('WELCOME', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.WELCOME} HAI 😊*\n\n*JO NEW MEMBER GROUP JOIN KARE GA USKA WELCOME MSG BHEJ DYA JAYE GA 😃 YEH SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮WECOME ON❯ 👑*\n*WELCOME OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮WELCOME OFF❯ 👑*`);
+        reply(faizan('WELCOME', config.WELCOME === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .welcome on/off'));
     }
 });
 
@@ -120,13 +122,13 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('GOODBYE', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('GOODBYE', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.GOODBYE} HAI 😊*\n\n*JO MEMBER GROUP LEFT KARE GA USKA GOODBYE MSG BHEJ DYA JAYE GA 😃 YEH SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮GOODBYE ON❯ 👑*\n*GOODBYE OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮GOODBYE OFF❯ 👑*`);
+        reply(faizan('GOODBYE', config.GOODBYE === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .goodbye on/off'));
     }
 });
 
@@ -143,13 +145,16 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('READ_MESSAGE', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('READ_MESSAGE', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI ${config.READ_MESSAGE} HAI 😊*\n*JO BHI MSG KARE GA USKA MSG KHUD HI SEEN `);
+        // FIX: this reply used to be a truncated/unterminated sentence
+        // ("...USKA MSG KHUD HI SEEN ") that never told the user how to
+        // toggle the feature — now uses the same banner as everything else.
+        reply(faizan('AUTO READ', config.READ_MESSAGE === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autoread on/off'));
     }
 });
 
@@ -163,13 +168,13 @@ cmd({
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('AUTO_VIEW_STATUS', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('AUTO_VIEW_STATUS', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI ${config.AUTO_VIEW_STATUS} HAI 😊*\n\n*JO BHI STATUS LAGAYE GA KHUD HI SEEN HO JAYE GA 😃 YEH SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOSTATUSVIEW ON❯ 👑*\n*OFF KARNE KE LIE LIKHO ☺️*\n*👑 ❮AUTOSTATUSVIEW OFF❯ 👑*`);
+        reply(faizan('AUTO STATUS VIEW', config.AUTO_VIEW_STATUS === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autoviewsview on/off'));
     }
 });
 
@@ -181,15 +186,15 @@ cmd({
     react: "❤️"
 },
 async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
-    if (!isOwner) return reply("🚫 Owner only!");
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
     const value = args[0]?.toLowerCase();
-    
+
     if (value === 'on' || value === 'true') {
         await updateConfig('AUTO_LIKE_STATUS', 'true', botNumber, config, reply);
     } else if (value === 'off' || value === 'false') {
         await updateConfig('AUTO_LIKE_STATUS', 'false', botNumber, config, reply);
     } else {
-        reply(`Current Status: ${config.AUTO_LIKE_STATUS}\nUsage: .autolikestatus on/off`);
+        reply(faizan('AUTO LIKE STATUS', config.AUTO_LIKE_STATUS === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autolikestatus on/off'));
     }
 });
 
@@ -213,7 +218,7 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     } else if (value === 'off' || value === 'false') {
         await updateConfig('AUTO_REACT', 'false', botNumber, config, reply);
     } else {
-        reply(`*ABHI :❯ ${config.AUTO_REACT} HAI 😊*\n\n*JO BHI MSG AYE GA USPE RANDOM EMOJI SE REACT HO JAYE GA 😃 YEH SETTING ON KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOREACT ON❯ 👑*\n*AUTOREACT OFF KARNE K LIE LIKHO ☺️*\n*👑 ❮AUTOREACT OFF❯ 👑*`);
+        reply(faizan('AUTO REACT', config.AUTO_REACT === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autoreact on/off'));
     }
 });
 
@@ -235,7 +240,7 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     if (validModes.includes(mode)) {
         await updateConfig('WORK_TYPE', mode, botNumber, config, reply);
     } else {
-        reply(`*GHALAT LIKHA HAI 🥺*\n*ESE LIKHO ☺️*COMMAND ❮MODE❯ LIKH KER IN ME SE KOI EK WORD LIKHO JAHA AP CHAHTE HO K BOT WORK KRE 🤗*\n ${validModes.join(', ')}\nCurrent: ${config.WORK_TYPE}`);
+        reply(faizan('MODE', config.WORK_TYPE, `Use: .mode <${validModes.join('/')}>`));
     }
 });
 
@@ -251,10 +256,10 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
 
     if (newPrefix) {
         // Ensure prefix is short (single character or short string)
-        if (newPrefix.length > 1 && newPrefix !== 'noprefix') return reply("❌ Prefix must be short (e.g. . or ! or #)");
-        
+        if (newPrefix.length > 1 && newPrefix !== 'noprefix') return reply(faizan('SETPREFIX', 'Rejected', 'Must be short, e.g. . or ! or #'));
+
         await updateConfig('PREFIX', newPrefix, botNumber, config, reply);
     } else {
-        reply(`*ABHI PREFIX ❮ ${config.PREFIX} ❯ HAI ☺️*\nJIS BHI NISHAN AP BOT CHALANA CHAHTE HAI WO NISHAN SET KERE ESE 😊*\n*❮SETPREFIX . ! + _ -❯*\n*JO BHI APKA DIL KARE 😍❣️*`);
+        reply(faizan('PREFIX', config.PREFIX, 'Use: .setprefix <symbol>'));
     }
 });
