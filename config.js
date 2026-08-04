@@ -113,6 +113,12 @@ module.exports = {
     /** Default bot profile / menu image */
     IMAGE_PATH: process.env.IMAGE_PATH || 'https://files.catbox.moe/ejufwa.jpg',
 
+    /** Image shown by the .alive command (falls back to IMAGE_PATH if unset) */
+    ALIVE_IMG: process.env.ALIVE_IMG || '',
+
+    /** Text shown on the .alive command's "Alive" line */
+    LIVE_MSG: process.env.LIVE_MSG || 'I am active and running',
+
     /** WhatsApp channel link for updates */
     CHANNEL_LINK: process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbBdQyRBPzjUMvx8Fb2g',
 
