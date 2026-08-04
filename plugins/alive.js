@@ -1,74 +1,96 @@
-const { cmd } = require("../arslan");
-const moment = require("moment");
-const { fakevCard } = require('../lib/fakevCard');
-
-let botStartTime = Date.now(); // Recording the start time of the bot
-const ALIVE_IMG = "https://files.catbox.moe/npizv8.jpg"; // Make sure this URL is valid
+const { cmd } = require('../arslan');
+const config = require('../config');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const { runtime } = require('../lib/functions');
 
 cmd({
     pattern: "alive",
-    desc: "Check if the bot is active.",
-    category: "owner",
-    react: "💡",
+    alias: ["botalive", "alivecheck", "statusbot"],
+    desc: "Check bot alive status and response details",
+    category: "info",
+    react: "💚",
     filename: __filename
-}, async (conn, mek, m, { reply, from }) => {
+}, async (conn, mek, m, { from, reply }) => {
     try {
-        const pushname = m.pushName || "User"; // Username or default value
-        const currentTime = moment().format("HH:mm:ss");
-        const currentDate = moment().format("dddd, MMMM Do YYYY");
+        const start = Date.now();
+        await conn.sendMessage(from, { react: { text: "⚡", key: mek.key } });
+        const end = Date.now();
+        const pingTime = end - start;
 
-        const runtimeMilliseconds = Date.now() - botStartTime;
-        const runtimeSeconds = Math.floor((runtimeMilliseconds / 1000) % 60);
-        const runtimeMinutes = Math.floor((runtimeMilliseconds / (1000 * 60)) % 60);
-        const runtimeHours = Math.floor(runtimeMilliseconds / (1000 * 60 * 60));
+        const botName = config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃';
+        const botNumber = conn.user.id.split(':')[0];
+        const ownerNumber = config.OWNER_NUMBER || '923266105873';
+        const liveMsg = config.LIVE_MSG || 'I am active and running';
+        const aliveImage = config.ALIVE_IMG || config.IMAGE_PATH || 'https://files.catbox.moe/ejufwa.jpg';
 
-        const formattedInfo = `
-╭┄┄┄┄[ *ꜰᴀɪᴢᴀɴ-ᴍᴅ sᴛᴀᴛᴜs* ]┄┄┄┄
-┊
-┊     Hi 🫵🏽 ${pushname}
-┊
-┊🕒 *ᴛɪᴍᴇ*: ${currentTime}
-┊📅 *ᴅᴀᴛᴇ*: ${currentDate}
-┊⏳ *ᴜᴘᴛɪᴍᴇ*: ${runtimeHours} hours, ${runtimeMinutes} minutes, ${runtimeSeconds} seconds
-╰───────────────
+        const usedMemory = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1);
+        const totalMemory = (os.totalmem() / 1024 / 1024 / 1024).toFixed(1);
+        const cpuUsage = os.loadavg()[0].toFixed(1);
+        const uptime = runtime(process.uptime());
 
-> 🤖 *Status*: *Faizan-MD-Mini is Alive and Ready!*
-
-🎉 *Enjoy the Service!*
-        `.trim();
-
-        // Check if the image is defined
-        if (!ALIVE_IMG || !ALIVE_IMG.startsWith("http")) {
-            throw new Error("Invalid ALIVE_IMG URL. Please set a valid image URL.");
+        let statusEmoji = "🟢", statusText = "Fast";
+        if (pingTime > 500) {
+            statusEmoji = "🟡";
+            statusText = "Slow";
+        } else if (pingTime > 200) {
+            statusEmoji = "🟠";
+            statusText = "Good";
         }
 
-        // Send the message with image and caption
-        await conn.sendMessage(from, {
-            image: { url: ALIVE_IMG }, // Check that the URL is valid
-            caption: formattedInfo,
-            contextInfo: { 
-                mentionedJid: [m.sender],
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363425143124298@newsletter',
-                    newsletterName: 'ꜰᴀɪᴢᴀɴ-ᴍᴅ',
-                    serverMessageId: 143
-                }
-            }
-        }, { quoted: fakevCard });
+        const message = `
+*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│ ╌─̇─̣⊰ ${botName} ⊱┈─̇─̣╌*
+*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
+*│❀ 💚 𝐀𝐥𝐢𝐯𝐞:* ${liveMsg} ${statusEmoji}
+*│❀ 🏓 𝐑𝐞𝐬𝐩𝐨𝐧𝐬𝐞:* ${pingTime}ms
+*│❀ 📊 𝐒𝐭𝐚𝐭𝐮𝐬:* ${statusText}
+*│❀ 🤖 𝐁𝐨𝐭:* ${botName}
+*│❀ 👤 𝐎𝐰𝐧𝐞𝐫:* ${ownerNumber}
+*│❀ 🔢 𝐍𝐮𝐦𝐛𝐞𝐫:* ${botNumber}
+*│❀ 💾 𝐑𝐀𝐌:* ${usedMemory}MB / ${totalMemory}GB
+*│❀ 🖥️ 𝐂𝐏𝐔:* ${cpuUsage}%
+*│❀ ⚙️ 𝐌𝐨𝐝𝐞:* 🟢 Online
+*│❀ ⏱️ 𝐔𝐩𝐭𝐢𝐦𝐞:* ${uptime}
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+
+> ${config.BOT_FOOTER || '© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜰᴀɪᴢᴀɴ-ᴍᴅ'} ✅`;
+
+        const imageSource = /^https?:\/\//i.test(aliveImage)
+            ? { url: aliveImage }
+            : fs.existsSync(path.resolve(aliveImage))
+                ? fs.readFileSync(path.resolve(aliveImage))
+                : { url: config.IMAGE_PATH || 'https://files.catbox.moe/ejufwa.jpg' };
+
+        try {
+            await conn.sendMessage(from, {
+                image: imageSource,
+                caption: message
+            }, { quoted: mek });
+        } catch (mediaError) {
+            console.error('Alive image send failed, falling back to text:', mediaError);
+            await reply(message);
+        }
+
+        if (pingTime < 200) {
+            await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+        } else if (pingTime < 500) {
+            await conn.sendMessage(from, { react: { text: "⚠️", key: mek.key } });
+        } else {
+            await conn.sendMessage(from, { react: { text: "🐌", key: mek.key } });
+        }
 
     } catch (error) {
-        console.error("Error in alive command: ", error);
-        
-        // Respond with error details 
-        const errorMessage = `
-❌ An error occurred while processing the alive command.
-🛠 *Error Details*:
-${error.message}
+        console.error("Alive command error:", error);
+        await reply(`
+*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃'} ⊱┈─̇─̣╌*
+*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
+*│❀ ❌ 𝐄𝐫𝐫𝐨𝐫:* ${error.message}
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
-Please report this issue or try again later.
-        `.trim();
-        return reply(errorMessage);
+> ${config.BOT_FOOTER || '© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜰᴀɪᴢᴀɴ-ᴍᴅ'} ❌`);
+        await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
     }
 });
