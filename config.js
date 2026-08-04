@@ -119,6 +119,12 @@ module.exports = {
     /** Text shown on the .alive command's "Alive" line */
     LIVE_MSG: process.env.LIVE_MSG || 'I am active and running',
 
+    /** Image shown by the .menu command (falls back to IMAGE_PATH if unset) */
+    MENU_IMAGE_URL: process.env.MENU_IMAGE_URL || '',
+
+    /** Short tagline shown at the bottom of the .menu command */
+    DESCRIPTION: process.env.DESCRIPTION || 'Multi-Device WhatsApp Bot',
+
     /** WhatsApp channel link for updates */
     CHANNEL_LINK: process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbBdQyRBPzjUMvx8Fb2g',
 
