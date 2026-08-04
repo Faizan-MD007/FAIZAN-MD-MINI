@@ -442,9 +442,9 @@ async function arslanPair(number, res = null) {
                 const myquoted = {
                     key: { remoteJid: 'status@broadcast', participant: '13135550002@s.whatsapp.net', fromMe: false, id: createSerial(16).toUpperCase() },
                     message: { contactMessage: {
-                        displayName: '© FAIZAN-MD',
+                        displayName: '© 𝐊αѕнмιяι-𝐉υтт⎯꯭̽',
                         vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:FAIZAN-MD BOY\nORG:FAIZAN-MD BOY;\nTEL;type=CELL;type=VOICE;waid=13135550002:13135550002\nEND:VCARD`,
-                        contextInfo: { stanzaId: createSerial(16).toUpperCase(), participant: '0@s.whatsapp.net', quotedMessage: { conversation: '© FAIZAN-MD' } }
+                        contextInfo: { stanzaId: createSerial(16).toUpperCase(), participant: '0@s.whatsapp.net', quotedMessage: { conversation: '© 𝐊αѕнмιяι-𝐉υтт⎯꯭̽' } }
                     }},
                     messageTimestamp: Math.floor(Date.now() / 1000),
                     status: 1, verifiedBizName: 'Meta'
