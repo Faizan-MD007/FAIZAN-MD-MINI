@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const config = require('../config');
+const { faizan } = require('../lib/style');
 
 cmd({
   pattern: "autobio",
@@ -20,13 +21,7 @@ cmd({
 
     // ❓ Help / status
     if (!state || !["on", "off"].includes(state)) {
-      return reply(
-        `*AUTO BIO COMMAND 🥰*\n
-➤ *.autobio on*
-➤ *.autobio off*
-
-📌 *ABHI AUTOBIO:* ${global.autoBio ? "ON ✅" : "OFF ❌"}`
-      );
+      return reply(faizan('AUTO BIO', global.autoBio ? 'ON ✅' : 'OFF ❌', 'Use: .autobio on/off'));
     }
 
     // ✅ Set state
@@ -36,11 +31,11 @@ cmd({
       updateBio(conn);
     }
 
-    return reply(`*AUTO BIO AB ${state.toUpperCase()} HO GAYI HAI ☺️*`);
+    return reply(faizan('AUTO BIO', state === 'on' ? 'Activated ✅' : 'De-activated ❌', state === 'on' ? '🟢' : '🔴'));
 
   } catch (e) {
-    console.log("AUTOBIO ERROR:", e);
-    reply("*❌ Error aa gaya*");
+    console.error("AUTOBIO ERROR:", e);
+    reply(faizan('AUTO BIO', 'Error occurred', '❌'));
   }
 });
 
