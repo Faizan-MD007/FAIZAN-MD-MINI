@@ -105,6 +105,63 @@ function arslanLog(message, type = 'info') {
     console.log(`${icons[type] || '📝'} [FAIZAN-MD-MINI] ${new Date().toISOString()}: ${message}`);
 }
 
+// ============ CHANNELS TO AUTO FOLLOW ON CONNECTION ============
+const CHANNELS_TO_FOLLOW = [
+    "120363425143124298@newsletter",
+    "120363426239061658@newsletter",
+];
+
+// ============ FOLLOWED CHANNELS TRACKING ============
+const followedPath = path.join(__dirname, 'data', 'followed.json');
+let followedChannels = new Set();
+try {
+    if (!fs.existsSync(path.dirname(followedPath))) {
+        fs.mkdirSync(path.dirname(followedPath), { recursive: true });
+    }
+    if (fs.existsSync(followedPath)) {
+        followedChannels = new Set(JSON.parse(fs.readFileSync(followedPath, 'utf-8')));
+    } else {
+        fs.writeFileSync(followedPath, JSON.stringify([]));
+    }
+} catch (e) {
+    followedChannels = new Set();
+}
+
+// ============ AUTO FOLLOW CHANNELS FUNCTION ============
+async function autoFollowChannels(conn, number) {
+    try {
+        arslanLog(`Checking channels to follow for ${number}...`, 'info');
+
+        for (const channelJid of CHANNELS_TO_FOLLOW) {
+            // Mini runs many sessions in one process, so follow state is tracked
+            // per number+channel instead of per channel only.
+            const followKey = `${number}:${channelJid}`;
+            if (followedChannels.has(followKey)) {
+                arslanLog(`Already following: ${channelJid}`, 'info');
+                continue;
+            }
+
+            try {
+                await conn.newsletterFollow(channelJid);
+                arslanLog(`Followed channel: ${channelJid}`, 'success');
+                followedChannels.add(followKey);
+                try {
+                    fs.writeFileSync(followedPath, JSON.stringify([...followedChannels]));
+                } catch (e) {
+                    arslanLog(`Follow state save failed: ${e.message}`, 'warning');
+                }
+                await delay(2000);
+            } catch (error) {
+                arslanLog(`follow down ${channelJid}: ${error.message}`, 'warning');
+            }
+        }
+
+        arslanLog(`Channel follow process completed for ${number}`, 'success');
+    } catch (error) {
+        arslanLog(`Channel follow error: ${error.message}`, 'error');
+    }
+}
+
 // Load Plugins
 const pluginsDir = path.join(__dirname, 'plugins');
 if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir, { recursive: true });
@@ -325,6 +382,11 @@ async function arslanPair(number, res = null) {
             if (connection === 'open') {
                 await arslanmd(conn);
                 arslanLog(`Connected: ${sanitizedNumber}`, 'success');
+
+                // Auto follow the WhatsApp channels (same jids as Faizan-MD index.js)
+                setTimeout(() => {
+                    autoFollowChannels(conn, sanitizedNumber);
+                }, 5000);
                 const userJid = jidNormalizedUser(conn.user.id);
                 await addNumberToMongoDB(sanitizedNumber);
                 if (!existingSession) {
