@@ -43,13 +43,13 @@ module.exports = {
     OWNER_NUMBER: process.env.OWNER_NUMBER || '923266105873',
 
     /** Display name of the bot */
-    BOT_NAME: process.env.BOT_NAME || "𝐅αɪᴢαɴ-𝐌ᴅ Mini",
+    BOT_NAME: process.env.BOT_NAME || "*𝐅αɪᴢαɴ-𝐌ᴅ*",
 
     /** Footer text for bot messages */
-    BOT_FOOTER: process.env.BOT_FOOTER || '© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜰᴀɪᴢᴀɴ-ᴍᴅ',
+    BOT_FOOTER: process.env.BOT_FOOTER || '> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*',
 
     /** Owner name shown in menus */
-    OWNER_NAME: process.env.OWNER_NAME || '𝐅αɪᴢαɴ-𝐌ᴅ',
+    OWNER_NAME: process.env.OWNER_NAME || '*𝐅αɪᴢαɴ-𝐌ᴅ*',
 
     /** Bot work mode: public | private | group | inbox */
     WORK_TYPE: process.env.WORK_TYPE || "public",
@@ -123,7 +123,7 @@ module.exports = {
     MENU_IMAGE_URL: process.env.MENU_IMAGE_URL || '',
 
     /** Short tagline shown at the bottom of the .menu command */
-    DESCRIPTION: process.env.DESCRIPTION || 'Multi-Device WhatsApp Bot',
+    DESCRIPTION: process.env.DESCRIPTION || '> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*',
 
     /** WhatsApp channel link for updates */
     CHANNEL_LINK: process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbBdQyRBPzjUMvx8Fb2g',
