@@ -31,26 +31,36 @@ function faizanStyle(title, value, status, quality = "", duration = "") {
 }
 
 // =================== FAIZAN API (ytdl - YouTube Legacy) ===================
-const FAIZAN_API = "https://faizan-api.vercel.app/api/ytdl"; // switched to ytdl (YouTube Legacy)
+const FAIZAN_API = "https://faizan-api.vercel.app/api/ytdl";
 
-async function downloadWithFaizan(url) {
+async function downloadWithFaizan(url, type = 'mp3') {
     try {
         const response = await axios.get(FAIZAN_API, {
-            params: { url, type: 'mp3' },
+            params: { url, type },
             timeout: 60000,
             headers: { 'User-Agent': 'Mozilla/5.0' }
         });
 
         const data = response.data;
 
-        if (data?.status === true && data?.result?.audio_download) {
-            return {
-                success: true,
-                audioUrl: data.result.audio_download,
-                title: data.result.title || 'Audio',
-                duration: data.result.duration ? `${data.result.duration}s` : 'Unknown',
-                quality: '128kbps'
-            };
+        if (data?.status === true) {
+            if (type === 'mp3' && data?.result?.audio_download) {
+                return {
+                    success: true,
+                    downloadUrl: data.result.audio_download,
+                    title: data.result.title || 'Audio',
+                    duration: data.result.duration ? `${data.result.duration}s` : 'Unknown',
+                    quality: '128kbps'
+                };
+            } else if (type === 'mp4' && data?.result?.video_download) {
+                return {
+                    success: true,
+                    downloadUrl: data.result.video_download,
+                    title: data.result.title || 'Video',
+                    duration: data.result.duration ? `${data.result.duration}s` : 'Unknown',
+                    quality: '360p'
+                };
+            }
         }
         return { success: false, error: 'No download link found' };
     } catch (err) {
@@ -62,7 +72,17 @@ async function downloadWithFaizan(url) {
 // =================== GET VIDEO URL (NAME OR LINK) ===================
 async function getVideoUrl(query) {
     if (query.includes('youtube.com') || query.includes('youtu.be')) {
-        return { url: query, title: null, thumbnail: null, duration: null };
+        const videoId = query.match(/(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{11})/)?.[1];
+        if (videoId) {
+            const search = await yts({ videoId });
+            return {
+                url: query,
+                title: search?.title || 'YouTube Video',
+                thumbnail: search?.thumbnail || null,
+                duration: search?.timestamp || 'Unknown'
+            };
+        }
+        return { url: query, title: 'YouTube Video', thumbnail: null, duration: 'Unknown' };
     }
 
     const search = await yts(query);
@@ -93,8 +113,6 @@ async function downloadToFile(url, filePath) {
 async function convertToOpus(inputPath, outputPath, effect = null) {
     return new Promise((resolve, reject) => {
         let command = ffmpeg(inputPath);
-
-        // Apply effect filter
         if (effect) {
             switch (effect) {
                 case 'fast':    command.audioFilters('atempo=1.5'); break;
@@ -104,8 +122,6 @@ async function convertToOpus(inputPath, outputPath, effect = null) {
                 case 'reverse': command.audioFilters('areverse'); break;
             }
         }
-
-        // Convert to OGG Opus — WhatsApp ka best supported audio format
         command
             .audioCodec('libopus')
             .audioChannels(1)
@@ -129,14 +145,11 @@ function cleanTemp(...files) {
 cmd({
     pattern: "song",
     alias: ["play", "music", "audio", "yta", "mp3"],
-    desc: "Download audio from YouTube by name or link (Faizan API)",
+    desc: "Download audio/video from YouTube with buttons",
     category: "download",
     react: "🍵",
     filename: __filename
-}, async (conn, mek, m, { from, args, reply }) => {
-    const tempInput = path.join(tempDir, `input_${Date.now()}.mp3`);
-    const tempOutput = path.join(tempDir, `output_${Date.now()}.ogg`);
-
+}, async (conn, mek, m, { from, args, reply, prefix }) => {
     try {
         if (!args.length) {
             return reply(`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
@@ -144,7 +157,6 @@ cmd({
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 *│❖ 📝 Usage:* .song <name or link>
 *│❖ 📗 Example:* .song Believer Imagine Dragons
-*│❖ 📗 Example:* .song https://youtube.com/shorts/xxx
 *│❖ ✨ Effects:* fast, slow, bass, volume, reverse
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
@@ -152,64 +164,128 @@ cmd({
         }
 
         let query = args.join(" ");
-        let effect = null;
-
-        // Check for effects
-        const effects = ['fast', 'slow', 'bass', 'volume', 'reverse'];
-        for (const eff of effects) {
-            if (args.includes(eff)) {
-                effect = eff;
-                query = args.filter(a => a !== eff).join(" ");
-                break;
-            }
-        }
-
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
 
         // Get video URL and info
         const videoInfo = await getVideoUrl(query);
 
-        // Send thumbnail if available
-        if (videoInfo.thumbnail) {
-            await conn.sendMessage(from, {
-                image: { url: videoInfo.thumbnail },
-                caption: faizanStyle('PROCESSING', videoInfo.title ? videoInfo.title.substring(0, 60) : 'Searching...', '⏳ Fetching audio...', '128kbps', videoInfo.duration || 'Unknown')
-            }, { quoted: mek });
-        }
+        const buttonText = `
+----------------------------
+. | 🎹 SELECT VIDEO QUALITY
+----------------------------
+${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
+`;
 
-        // Download audio using Faizan API
-        let result = await downloadWithFaizan(videoInfo.url);
+        const buttons = [
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🎵 AUDIO",
+                    id: `${prefix}downaudio ${videoInfo.url}`
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "🎥 HD",
+                    id: `${prefix}downvideo ${videoInfo.url}`
+                })
+            },
+            {
+                name: "quick_reply",
+                buttonParamsJson: JSON.stringify({
+                    display_text: "📺 SD",
+                    id: `${prefix}downvideo ${videoInfo.url}`
+                })
+            }
+        ];
 
-        if (!result.success || !result.audioUrl) {
-            throw new Error(result.error || "Download failed");
-        }
+        const interactiveMessage = {
+            body: { text: buttonText },
+            footer: { text: config.BOT_FOOTER || "> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*" },
+            header: {
+                title: videoInfo.title,
+                hasMediaAttachment: true,
+                imageMessage: videoInfo.thumbnail ? (await conn.prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer })).imageMessage : null
+            },
+            nativeFlowMessage: {
+                buttons: buttons
+            }
+        };
 
-        const finalTitle = result.title || videoInfo.title || 'Audio';
-        const finalDuration = result.duration || videoInfo.duration || 'Unknown';
+        const message = {
+            viewOnceMessage: {
+                message: {
+                    interactiveMessage: interactiveMessage
+                }
+            }
+        };
 
-        // ✅ Download audio to temp file
-        await downloadToFile(result.audioUrl, tempInput);
+        await conn.relayMessage(from, message, { quoted: mek });
 
-        // ✅ Convert to OGG Opus via FFmpeg (with optional effect)
-        await convertToOpus(tempInput, tempOutput, effect);
+    } catch (err) {
+        console.error('Song Error:', err.message);
+        reply(faizanStyle('ERROR', err.message || 'Search failed.', '❌', '—', '—'));
+    }
+});
 
-        // ✅ Send as PTT (voice note) — plays automatically in WhatsApp
+// =================== DOWNLOAD HANDLERS ===================
+
+cmd({
+    pattern: "downaudio",
+    dontAddCommandList: true,
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    if (!args.length) return;
+    const url = args[0];
+    const tempInput = path.join(tempDir, `input_${Date.now()}.mp3`);
+    const tempOutput = path.join(tempDir, `output_${Date.now()}.ogg`);
+
+    try {
+        await conn.sendMessage(from, { react: { text: '📥', key: mek.key } });
+        let result = await downloadWithFaizan(url, 'mp3');
+        if (!result.success) throw new Error(result.error || "Download failed");
+
+        await downloadToFile(result.downloadUrl, tempInput);
+        await convertToOpus(tempInput, tempOutput);
+
         await conn.sendMessage(from, {
             audio: { url: tempOutput },
             mimetype: 'audio/ogg; codecs=opus',
             ptt: true,
-            fileName: `${finalTitle.replace(/[^\w\s-]/g, '').substring(0, 50)}.ogg`,
-            caption: faizanStyle('SONG', `${finalTitle.substring(0, 100)}${effect ? `\n🎮️ Effect: ${effect}` : ''}`, '✅', result.quality, finalDuration)
+            fileName: `${result.title}.ogg`,
+            caption: faizanStyle('SONG', result.title, '✅', result.quality, result.duration)
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
-
     } catch (err) {
-        console.error('Song Error:', err.message);
-        reply(faizanStyle('ERROR', err.message || 'Download failed. Try again later.', '❌', '—', '—'));
-        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } });
+        reply(`❌ Error: ${err.message}`);
     } finally {
-        // Cleanup temp files
         cleanTemp(tempInput, tempOutput);
+    }
+});
+
+cmd({
+    pattern: "downvideo",
+    dontAddCommandList: true,
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    if (!args.length) return;
+    const url = args[0];
+
+    try {
+        await conn.sendMessage(from, { react: { text: '🎥', key: mek.key } });
+        let result = await downloadWithFaizan(url, 'mp4');
+        if (!result.success) throw new Error(result.error || "Download failed");
+
+        await conn.sendMessage(from, {
+            video: { url: result.downloadUrl },
+            mimetype: 'video/mp4',
+            caption: faizanStyle('VIDEO', result.title, '✅', result.quality, result.duration)
+        }, { quoted: mek });
+
+        await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
+    } catch (err) {
+        reply(`❌ Error: ${err.message}`);
     }
 });

@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const axios = require('axios');
+const config = require('../config');
 
 cmd({
   pattern: "fb",
@@ -7,7 +8,7 @@ cmd({
   alias: ["facebook", "fbdl"],
   category: "download",
   filename: __filename
-}, async (conn, mek, m, { from, q, reply }) => {
+}, async (conn, mek, m, { from, q, reply, prefix }) => {
   try {
     if (!q) return reply("*AP NE KOI FACEBOOK VIDEO DOWNLOAD KARNI HAI 🤔 TO AP US FACEBOOK VIDEO KA LINK COPY KAR LO 🤗*\n*PHIR ESE LIKHO ☺️*\n\n*FB ❮FACEBOOK VIDEO LINK❯*\n\n*JAB AP ESE LIKHO GE 😇 TO APKI FACEBOOK VIDEO DOWNLOAD KAR KE 😃 YAHA PER BHEJ DE JAYE GE 😍♥️*");
 
@@ -15,45 +16,88 @@ cmd({
     const res = await axios.get(apiUrl);
     const data = res.data;
 
-    // 🔎 API status check
-    if (data.status !== true) {
-      return reply("API ERROR 😢");
-    }
-
-    // 🔎 Results check
-    if (!Array.isArray(data.results) || data.results.length === 0) {
-      return reply("*FACEBOOK VIDEO NAHI MIL RAHI 🥺*");
+    if (data.status !== true || !Array.isArray(data.results) || data.results.length === 0) {
+      return reply("❌ Video not found or API error.");
     }
 
     const result = data.results[0];
+    const hd = result.hdQualityLink || "";
+    const sd = result.normalQualityLink || "";
 
-    // 🎥 Quality selection (API ke mutabiq)
-    const videoUrl = result.hdQualityLink
-      ? result.hdQualityLink
-      : result.normalQualityLink;
+    const buttonText = `
+----------------------------
+. | 🎹 SELECT VIDEO QUALITY
+----------------------------
+${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
+`;
 
-    if (!videoUrl) {
-      return reply("*SIRF FACEBOOK VIDEO KA LINK DO ☺️*");
+    const buttons = [];
+    if (hd) {
+      buttons.push({
+        name: "quick_reply",
+        buttonParamsJson: JSON.stringify({
+          display_text: "🎥 HD",
+          id: `${prefix}fb-dl ${hd}`
+        })
+      });
+    }
+    if (sd) {
+      buttons.push({
+        name: "quick_reply",
+        buttonParamsJson: JSON.stringify({
+          display_text: "📺 SD",
+          id: `${prefix}fb-dl ${sd}`
+        })
+      });
     }
 
-    // 📝 Caption API data se
-    const caption = `*👑 FB VIDEO 👑*
-*👑 TIME :❯ ${result.duration}*
-*👑 CREATER :❯ ${data.creator}*
-*👑 BY :❯ FAIZAN-MD 👑*`;
+    if (buttons.length === 0) return reply("❌ No download links found.");
 
+    const interactiveMessage = {
+      body: { text: buttonText },
+      footer: { text: config.BOT_FOOTER || "> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*" },
+      nativeFlowMessage: {
+        buttons: buttons
+      }
+    };
+
+    const message = {
+      viewOnceMessage: {
+        message: {
+          interactiveMessage: interactiveMessage
+        }
+      }
+    };
+
+    await conn.relayMessage(from, message, { quoted: mek });
+
+  } catch (err) {
+    console.log(err);
+    reply("❌ Error occurred.");
+  }
+});
+
+// Handler for FB download button
+cmd({
+  pattern: "fb-dl",
+  dontAddCommandList: true,
+  filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+  if (!args.length) return;
+  const videoUrl = args[0];
+  try {
+    await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });
     await conn.sendMessage(
       from,
       {
         video: { url: videoUrl },
         mimetype: "video/mp4",
-        caption: caption
+        caption: `*👑 FB VIDEO DOWNLOADED 👑*\n\n${config.BOT_FOOTER || '> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*'}`
       },
       { quoted: mek }
     );
-
-  } catch (err) {
-    console.log(err);
-    reply("❌ Error aa gaya");
+    await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+  } catch (e) {
+    reply("❌ Failed to send video.");
   }
 });
