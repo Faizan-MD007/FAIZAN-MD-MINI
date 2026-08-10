@@ -6,6 +6,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const path = require('path');
+const { generateWAMessageFromContent, prepareWAMessageMedia } = require('@whiskeysockets/baileys');
 
 // =================== FFMPEG SETUP ===================
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -144,7 +145,7 @@ cmd({
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
         const videoInfo = await getVideoUrl(query);
 
-        const listText = `
+        const buttonText = `
 *${videoInfo.title}*
 
 ----------------------------
@@ -153,28 +154,55 @@ cmd({
 ${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
 `;
 
-        const sections = [
+        const buttons = [
             {
-                title: "Select Download Type",
-                rows: [
-                    {title: "🎵 AUDIO", rowId: `${prefix}downaudio ${videoInfo.url}`, description: "Download as Audio File"},
-                    {title: "🎥 HD VIDEO", rowId: `${prefix}downvideo ${videoInfo.url}`, description: "Download in High Quality"},
-                    {title: "📺 SD VIDEO", rowId: `${prefix}downvideo ${videoInfo.url}`, description: "Download in Standard Quality"}
-                ]
+                "name": "quick_reply",
+                "buttonParamsJson": `{"display_text":"🎵 AUDIO","id":"${prefix}downaudio ${videoInfo.url}"}`
+            },
+            {
+                "name": "quick_reply",
+                "buttonParamsJson": `{"display_text":"🎥 HD","id":"${prefix}downvideo ${videoInfo.url}"}`
+            },
+            {
+                "name": "quick_reply",
+                "buttonParamsJson": `{"display_text":"📺 SD","id":"${prefix}downvideo ${videoInfo.url}"}`
             }
         ];
 
-        const listMessage = {
-            text: listText,
-            footer: config.BOT_FOOTER,
-            title: "✨ FAIZAN-MD DOWNLOADER ✨",
-            buttonText: "SELECT QUALITY",
-            sections
-        };
+        let header = {};
+        if (videoInfo.thumbnail) {
+            const media = await prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer });
+            header = {
+                title: "✨ FAIZAN-MD ✨",
+                hasMediaAttachment: true,
+                imageMessage: media.imageMessage
+            };
+        } else {
+            header = {
+                title: "✨ FAIZAN-MD ✨",
+                hasMediaAttachment: false
+            };
+        }
 
-        await conn.sendMessage(from, listMessage, { quoted: mek });
-        
+        const msg = generateWAMessageFromContent(from, {
+            viewOnceMessage: {
+                message: {
+                    interactiveMessage: {
+                        body: { text: buttonText },
+                        footer: { text: config.BOT_FOOTER },
+                        header: header,
+                        nativeFlowMessage: {
+                            buttons: buttons
+                        }
+                    }
+                }
+            }
+        }, { quoted: mek });
+
+        await conn.relayMessage(from, msg.message, { messageId: msg.key.id });
+
     } catch (err) {
+        console.error(err);
         reply(`❌ Error: ${err.message}`);
     }
 });

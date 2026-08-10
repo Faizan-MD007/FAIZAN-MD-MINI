@@ -1,6 +1,7 @@
 const { cmd } = require('../arslan');
 const axios = require('axios');
 const config = require('../config');
+const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
 
 cmd({
   pattern: "fb",
@@ -28,32 +29,46 @@ cmd({
 
     if (!hd && !sd) return reply("❌ No download links found.");
 
-    const listText = `
+    const buttonText = `
 ----------------------------
 . | 🎹 SELECT VIDEO QUALITY
 ----------------------------
 ${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
 `;
 
-    const rows = [];
+    const buttons = [];
     if (hd) {
-      rows.push({title: "🎥 HD QUALITY", rowId: `${prefix}fb-dl ${hd}`, description: "Download in High Definition"});
+      buttons.push({
+        "name": "quick_reply",
+        "buttonParamsJson": `{"display_text":"🎥 HD","id":"${prefix}fb-dl ${hd}"}`
+      });
     }
     if (sd) {
-      rows.push({title: "📺 SD QUALITY", rowId: `${prefix}fb-dl ${sd}`, description: "Download in Standard Definition"});
+      buttons.push({
+        "name": "quick_reply",
+        "buttonParamsJson": `{"display_text":"📺 SD","id":"${prefix}fb-dl ${sd}"}`
+      });
     }
 
-    const listMessage = {
-      text: listText,
-      footer: config.BOT_FOOTER,
-      title: "👑 FACEBOOK DOWNLOADER 👑",
-      buttonText: "SELECT QUALITY",
-      sections: [{ title: "Select Quality", rows }]
-    };
+    const msg = generateWAMessageFromContent(from, {
+        viewOnceMessage: {
+            message: {
+                interactiveMessage: {
+                    body: { text: buttonText },
+                    footer: { text: config.BOT_FOOTER },
+                    header: { title: "👑 FACEBOOK DOWNLOADER 👑", hasMediaAttachment: false },
+                    nativeFlowMessage: {
+                        buttons: buttons
+                    }
+                }
+            }
+        }
+    }, { quoted: mek });
 
-    await conn.sendMessage(from, listMessage, { quoted: mek });
+    await conn.relayMessage(from, msg.message, { messageId: msg.key.id });
 
   } catch (err) {
+    console.error(err);
     reply("❌ Error occurred while processing Facebook video.");
   }
 });
