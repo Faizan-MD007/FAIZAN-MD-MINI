@@ -6,7 +6,6 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const path = require('path');
-const { prepareWAMessageMedia } = require('@whiskeysockets/baileys');
 
 // =================== FFMPEG SETUP ===================
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -41,9 +40,7 @@ async function downloadWithFaizan(url, type = 'mp3') {
             timeout: 60000,
             headers: { 'User-Agent': 'Mozilla/5.0' }
         });
-
         const data = response.data;
-
         if (data?.status === true) {
             if (type === 'mp3' && data?.result?.audio_download) {
                 return {
@@ -65,7 +62,6 @@ async function downloadWithFaizan(url, type = 'mp3') {
         }
         return { success: false, error: 'No download link found' };
     } catch (err) {
-        console.error('Faizan API Error:', err.message);
         return { success: false, error: err.message };
     }
 }
@@ -85,11 +81,8 @@ async function getVideoUrl(query) {
         }
         return { url: query, title: 'YouTube Video', thumbnail: null, duration: 'Unknown' };
     }
-
     const search = await yts(query);
-    if (!search.videos || search.videos.length === 0) {
-        throw new Error("No results found");
-    }
+    if (!search.videos || search.videos.length === 0) throw new Error("No results found");
     const video = search.videos[0];
     return {
         url: video.url,
@@ -123,15 +116,7 @@ async function convertToOpus(inputPath, outputPath, effect = null) {
                 case 'reverse': command.audioFilters('areverse'); break;
             }
         }
-        command
-            .audioCodec('libopus')
-            .audioChannels(1)
-            .audioFrequency(48000)
-            .format('ogg')
-            .output(outputPath)
-            .on('end', () => resolve(outputPath))
-            .on('error', reject)
-            .run();
+        command.audioCodec('libopus').audioChannels(1).audioFrequency(48000).format('ogg').output(outputPath).on('end', () => resolve(outputPath)).on('error', reject).run();
     });
 }
 
@@ -146,102 +131,43 @@ function cleanTemp(...files) {
 cmd({
     pattern: "song",
     alias: ["play", "music", "audio", "yta", "mp3"],
-    desc: "Download audio/video from YouTube with buttons",
+    desc: "Download audio/video from YouTube",
     category: "download",
     react: "🍵",
     filename: __filename
 }, async (conn, mek, m, { from, args, reply, prefix }) => {
     try {
         if (!args.length) {
-            return reply(`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍 𝐌𝐄𝐍𝐔'} ⊱┈─̇─̣╌*
-*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│❖ 📝 Usage:* .song <name or link>
-*│❖ 📗 Example:* .song Believer Imagine Dragons
-*│❖ ✨ Effects:* fast, slow, bass, volume, reverse
-*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
-
-> *𝐏𝐫𝐨𝐯𝐢𝐝𝐞𝐝 𝐁𝐲 𝐅𝐚𝐢𝐳𝐚𝐧-𝐌𝐝 🍵*`);
+            return reply(`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*\n*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍 𝐌𝐄𝐍𝐔'} ⊱┈─̇─̣╌*\n*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*\n*│❖ 📝 Usage:* .song <name or link>\n*│❖ 📗 Example:* .song Believer Imagine Dragons\n*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*\n\n> *𝐏𝐫𝐨𝐯𝐢𝐝𝐞𝐝 𝐁𝐲 𝐅𝐚𝐢𝐳𝐚𝐧-𝐌𝐝 🍵*`);
         }
-
         let query = args.join(" ");
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
-
-        // Get video URL and info
         const videoInfo = await getVideoUrl(query);
 
-        const buttonText = `
-----------------------------
-. | 🎹 SELECT VIDEO QUALITY
-----------------------------
-${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
-`;
+        const buttonText = `*${videoInfo.title}*\n\n----------------------------\n. | 🎹 SELECT VIDEO QUALITY\n----------------------------\n${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER`;
 
-        const buttons = [
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🎵 AUDIO",
-                    id: `${prefix}downaudio ${videoInfo.url}`
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "🎥 HD",
-                    id: `${prefix}downvideo ${videoInfo.url}`
-                })
-            },
-            {
-                name: "quick_reply",
-                buttonParamsJson: JSON.stringify({
-                    display_text: "📺 SD",
-                    id: `${prefix}downvideo ${videoInfo.url}`
-                })
-            }
+        // Template buttons are more compatible
+        const templateButtons = [
+            {index: 1, quickReplyButton: {displayText: '🎵 AUDIO', id: `${prefix}downaudio ${videoInfo.url}`}},
+            {index: 2, quickReplyButton: {displayText: '🎥 HD', id: `${prefix}downvideo ${videoInfo.url}`}},
+            {index: 3, quickReplyButton: {displayText: '📺 SD', id: `${prefix}downvideo ${videoInfo.url}`}},
         ];
 
-        let headerImage = null;
-        if (videoInfo.thumbnail) {
-            try {
-                const media = await prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer });
-                headerImage = media.imageMessage;
-            } catch (e) {
-                console.error("Media preparation failed:", e);
-            }
-        }
-
-        const interactiveMessage = {
-            body: { text: buttonText },
-            footer: { text: config.BOT_FOOTER || "> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*" },
-            header: {
-                title: videoInfo.title,
-                hasMediaAttachment: !!headerImage,
-                imageMessage: headerImage
-            },
-            nativeFlowMessage: {
-                buttons: buttons
-            }
+        const buttonMessage = {
+            image: { url: videoInfo.thumbnail || config.IMAGE_PATH },
+            caption: buttonText,
+            footer: config.BOT_FOOTER,
+            templateButtons: templateButtons,
+            headerType: 4
         };
 
-        const message = {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: interactiveMessage
-                }
-            }
-        };
-
-        await conn.relayMessage(from, message, { quoted: mek });
-
+        await conn.sendMessage(from, buttonMessage, { quoted: mek });
     } catch (err) {
-        console.error('Song Error:', err.message);
-        reply(faizanStyle('ERROR', err.message || 'Search failed.', '❌', '—', '—'));
+        reply(`❌ Error: ${err.message}`);
     }
 });
 
 // =================== DOWNLOAD HANDLERS ===================
-
 cmd({
     pattern: "downaudio",
     dontAddCommandList: true,
@@ -251,23 +177,13 @@ cmd({
     const url = args[0];
     const tempInput = path.join(tempDir, `input_${Date.now()}.mp3`);
     const tempOutput = path.join(tempDir, `output_${Date.now()}.ogg`);
-
     try {
         await conn.sendMessage(from, { react: { text: '📥', key: mek.key } });
         let result = await downloadWithFaizan(url, 'mp3');
         if (!result.success) throw new Error(result.error || "Download failed");
-
         await downloadToFile(result.downloadUrl, tempInput);
         await convertToOpus(tempInput, tempOutput);
-
-        await conn.sendMessage(from, {
-            audio: { url: tempOutput },
-            mimetype: 'audio/ogg; codecs=opus',
-            ptt: true,
-            fileName: `${result.title}.ogg`,
-            caption: faizanStyle('SONG', result.title, '✅', result.quality, result.duration)
-        }, { quoted: mek });
-
+        await conn.sendMessage(from, { audio: { url: tempOutput }, mimetype: 'audio/ogg; codecs=opus', ptt: true, fileName: `${result.title}.ogg`, caption: faizanStyle('SONG', result.title, '✅', result.quality, result.duration) }, { quoted: mek });
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
     } catch (err) {
         reply(`❌ Error: ${err.message}`);
@@ -283,18 +199,11 @@ cmd({
 }, async (conn, mek, m, { from, args, reply }) => {
     if (!args.length) return;
     const url = args[0];
-
     try {
         await conn.sendMessage(from, { react: { text: '🎥', key: mek.key } });
         let result = await downloadWithFaizan(url, 'mp4');
         if (!result.success) throw new Error(result.error || "Download failed");
-
-        await conn.sendMessage(from, {
-            video: { url: result.downloadUrl },
-            mimetype: 'video/mp4',
-            caption: faizanStyle('VIDEO', result.title, '✅', result.quality, result.duration)
-        }, { quoted: mek });
-
+        await conn.sendMessage(from, { video: { url: result.downloadUrl }, mimetype: 'video/mp4', caption: faizanStyle('VIDEO', result.title, '✅', result.quality, result.duration) }, { quoted: mek });
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
     } catch (err) {
         reply(`❌ Error: ${err.message}`);
