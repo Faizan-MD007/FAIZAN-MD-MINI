@@ -28,24 +28,30 @@ cmd({
 
     if (!hd && !sd) return reply("❌ No download links found.");
 
-    const buttonText = `----------------------------\n. | 🎹 SELECT VIDEO QUALITY\n----------------------------\n${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER`;
+    const listText = `
+----------------------------
+. | 🎹 SELECT VIDEO QUALITY
+----------------------------
+${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
+`;
 
-    const templateButtons = [];
+    const rows = [];
     if (hd) {
-      templateButtons.push({index: 1, quickReplyButton: {displayText: '🎥 HD', id: `${prefix}fb-dl ${hd}`}});
+      rows.push({title: "🎥 HD QUALITY", rowId: `${prefix}fb-dl ${hd}`, description: "Download in High Definition"});
     }
     if (sd) {
-      templateButtons.push({index: 2, quickReplyButton: {displayText: '📺 SD', id: `${prefix}fb-dl ${sd}`}});
+      rows.push({title: "📺 SD QUALITY", rowId: `${prefix}fb-dl ${sd}`, description: "Download in Standard Definition"});
     }
 
-    const buttonMessage = {
-      text: buttonText,
+    const listMessage = {
+      text: listText,
       footer: config.BOT_FOOTER,
-      templateButtons: templateButtons,
-      headerType: 1
+      title: "👑 FACEBOOK DOWNLOADER 👑",
+      buttonText: "SELECT QUALITY",
+      sections: [{ title: "Select Quality", rows }]
     };
 
-    await conn.sendMessage(from, buttonMessage, { quoted: mek });
+    await conn.sendMessage(from, listMessage, { quoted: mek });
 
   } catch (err) {
     reply("❌ Error occurred while processing Facebook video.");

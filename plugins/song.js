@@ -144,24 +144,36 @@ cmd({
         await conn.sendMessage(from, { react: { text: '⏳', key: mek.key } });
         const videoInfo = await getVideoUrl(query);
 
-        const buttonText = `*${videoInfo.title}*\n\n----------------------------\n. | 🎹 SELECT VIDEO QUALITY\n----------------------------\n${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER`;
+        const listText = `
+*${videoInfo.title}*
 
-        // Template buttons are more compatible
-        const templateButtons = [
-            {index: 1, quickReplyButton: {displayText: '🎵 AUDIO', id: `${prefix}downaudio ${videoInfo.url}`}},
-            {index: 2, quickReplyButton: {displayText: '🎥 HD', id: `${prefix}downvideo ${videoInfo.url}`}},
-            {index: 3, quickReplyButton: {displayText: '📺 SD', id: `${prefix}downvideo ${videoInfo.url}`}},
+----------------------------
+. | 🎹 SELECT VIDEO QUALITY
+----------------------------
+${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
+`;
+
+        const sections = [
+            {
+                title: "Select Download Type",
+                rows: [
+                    {title: "🎵 AUDIO", rowId: `${prefix}downaudio ${videoInfo.url}`, description: "Download as Audio File"},
+                    {title: "🎥 HD VIDEO", rowId: `${prefix}downvideo ${videoInfo.url}`, description: "Download in High Quality"},
+                    {title: "📺 SD VIDEO", rowId: `${prefix}downvideo ${videoInfo.url}`, description: "Download in Standard Quality"}
+                ]
+            }
         ];
 
-        const buttonMessage = {
-            image: { url: videoInfo.thumbnail || config.IMAGE_PATH },
-            caption: buttonText,
+        const listMessage = {
+            text: listText,
             footer: config.BOT_FOOTER,
-            templateButtons: templateButtons,
-            headerType: 4
+            title: "✨ FAIZAN-MD DOWNLOADER ✨",
+            buttonText: "SELECT QUALITY",
+            sections
         };
 
-        await conn.sendMessage(from, buttonMessage, { quoted: mek });
+        await conn.sendMessage(from, listMessage, { quoted: mek });
+        
     } catch (err) {
         reply(`❌ Error: ${err.message}`);
     }
