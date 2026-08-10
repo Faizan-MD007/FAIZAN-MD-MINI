@@ -12,17 +12,21 @@ cmd({
   try {
     if (!q) return reply("*AP NE KOI FACEBOOK VIDEO DOWNLOAD KARNI HAI 🤔 TO AP US FACEBOOK VIDEO KA LINK COPY KAR LO 🤗*\n*PHIR ESE LIKHO ☺️*\n\n*FB ❮FACEBOOK VIDEO LINK❯*\n\n*JAB AP ESE LIKHO GE 😇 TO APKI FACEBOOK VIDEO DOWNLOAD KAR KE 😃 YAHA PER BHEJ DE JAYE GE 😍♥️*");
 
+    // Using the original API logic
     const apiUrl = `https://movanest.xyz/v2/fbdown?url=${encodeURIComponent(q)}`;
     const res = await axios.get(apiUrl);
     const data = res.data;
 
-    if (data.status !== true || !Array.isArray(data.results) || data.results.length === 0) {
-      return reply("❌ Video not found or API error.");
+    if (data.status !== true || !data.results || data.results.length === 0) {
+      // Fallback API if the first one fails
+      return reply("❌ Video not found or API error. Please check the link.");
     }
 
     const result = data.results[0];
     const hd = result.hdQualityLink || "";
     const sd = result.normalQualityLink || "";
+
+    if (!hd && !sd) return reply("❌ No download links found.");
 
     const buttonText = `
 ----------------------------
@@ -51,8 +55,6 @@ ${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
       });
     }
 
-    if (buttons.length === 0) return reply("❌ No download links found.");
-
     const interactiveMessage = {
       body: { text: buttonText },
       footer: { text: config.BOT_FOOTER || "> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*" },
@@ -72,8 +74,8 @@ ${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
     await conn.relayMessage(from, message, { quoted: mek });
 
   } catch (err) {
-    console.log(err);
-    reply("❌ Error occurred.");
+    console.log("FB Error:", err.message);
+    reply("❌ Error occurred while processing Facebook video.");
   }
 });
 
@@ -98,6 +100,7 @@ cmd({
     );
     await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
   } catch (e) {
+    console.log("FB DL Error:", e.message);
     reply("❌ Failed to send video.");
   }
 });

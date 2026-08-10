@@ -6,6 +6,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const path = require('path');
+const { prepareWAMessageMedia } = require('@whiskeysockets/baileys');
 
 // =================== FFMPEG SETUP ===================
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -200,13 +201,23 @@ ${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
             }
         ];
 
+        let headerImage = null;
+        if (videoInfo.thumbnail) {
+            try {
+                const media = await prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer });
+                headerImage = media.imageMessage;
+            } catch (e) {
+                console.error("Media preparation failed:", e);
+            }
+        }
+
         const interactiveMessage = {
             body: { text: buttonText },
             footer: { text: config.BOT_FOOTER || "> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*" },
             header: {
                 title: videoInfo.title,
-                hasMediaAttachment: true,
-                imageMessage: videoInfo.thumbnail ? (await conn.prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer })).imageMessage : null
+                hasMediaAttachment: !!headerImage,
+                imageMessage: headerImage
             },
             nativeFlowMessage: {
                 buttons: buttons
