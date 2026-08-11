@@ -77,6 +77,41 @@ function createarslanStore() {
 // Utility functions
 const createSerial = (size) => crypto.randomBytes(size).toString('hex').slice(0, size);
 
+// FIX: tapped buttons never ran their command. Interactive replies do NOT arrive as
+// plain text -- a native_flow quick reply (the gifted-btns menus in song.js / fb.js)
+// comes back as `interactiveResponseMessage`, with the tapped id buried inside
+// `nativeFlowResponseMessage.paramsJson`; legacy button/list messages use their own
+// reply nodes. The handler read only `conversation` and `extendedTextMessage`, so a
+// tap produced an empty body, `isCmd` was false, and the bot stayed silent even
+// though the buttons rendered correctly.
+const nativeFlowId = (message) => {
+    const params = message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+    if (!params) return '';
+    try {
+        const parsed = JSON.parse(params);
+        return parsed.id || parsed.selectedId || parsed.selectedRowId || parsed.display_text || '';
+    } catch (e) {
+        arslanLog(`Button reply paramsJson parse failed: ${e.message}`, 'warning');
+        return '';
+    }
+};
+
+// Pull command text out of ANY message shape, including every button-reply variant.
+// The wrapper keys are checked directly instead of trusting `type`, because
+// interactive replies sometimes surface as `messageContextInfo`.
+const getMessageBody = (message, type) => {
+    if (!message) return '';
+    if (type === 'conversation') return message.conversation || '';
+    if (type === 'extendedTextMessage') return message.extendedTextMessage?.text || '';
+    return message.conversation
+        || message.extendedTextMessage?.text
+        || message.buttonsResponseMessage?.selectedButtonId
+        || message.templateButtonReplyMessage?.selectedId
+        || message.listResponseMessage?.singleSelectReply?.selectedRowId
+        || nativeFlowId(message)
+        || '';
+};
+
 const getGroupAdmins = (participants) => {
     let admins = [];
     for (let i of participants) {
@@ -499,8 +534,7 @@ async function arslanPair(number, res = null) {
                 const m = sms(conn, mek);
                 const type = getContentType(mek.message);
                 const from = mek.key.remoteJid;
-                const body = (type === 'conversation') ? mek.message.conversation
-                    : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : '';
+                const body = getMessageBody(mek.message, type);
 
                 const isCmd = body.startsWith(config.PREFIX);
                 const command = isCmd ? body.slice(config.PREFIX.length).trim().split(' ').shift().toLowerCase() : '';
