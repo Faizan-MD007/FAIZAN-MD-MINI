@@ -30,6 +30,7 @@ const {
     getStatsForNumber
 } = require('./lib/database');
 const { handleAntidelete } = require('./lib/antidelete');
+const { handleAntiViewOnce } = require('./lib/antiviewonce');
 
 const express = require('express');
 const fs = require('fs-extra');
@@ -425,21 +426,45 @@ async function arslanPair(number, res = null) {
                     // and WhatsApp silently dropped the seen/react/reply.
                     const statusPoster = mek.key.participant || mek.participant;
 
-                    if (userConfig.AUTO_VIEW_STATUS === 'true') {
-                        try { await conn.readMessages([mek.key]); } catch (e) {}
+                    // FIX: userConfig comes from Mongo and only carries keys the user
+                    // actually changed, so `userConfig.X === 'true'` read undefined for
+                    // anyone who never touched the setting — status seen/react/reply
+                    // stayed off even though config.js defaults them to 'true'.
+                    // Fall back to config.js and accept real booleans too.
+                    const flag = (key) => {
+                        const v = (userConfig[key] !== undefined && userConfig[key] !== null && userConfig[key] !== '')
+                            ? userConfig[key] : config[key];
+                        return v === true || String(v).toLowerCase() === 'true';
+                    };
+
+                    if (flag('AUTO_VIEW_STATUS')) {
+                        try { await conn.readMessages([mek.key]); } catch (e) { arslanLog(`Status seen failed: ${e.message}`, 'warning'); }
                     }
-                    if (userConfig.AUTO_LIKE_STATUS === 'true') {
+                    if (flag('AUTO_LIKE_STATUS')) {
                         try {
-                            const botJid = conn.user?.id || conn.user?.jid;
+                            // FIX: the react key must carry the status POSTER as
+                            // `participant` — reacting with the plain notification key
+                            // was accepted by WhatsApp and then showed no reaction.
+                            const botJid = jidNormalizedUser(conn.user.id);
                             const emojis = (userConfig.AUTO_LIKE_EMOJI && userConfig.AUTO_LIKE_EMOJI.length) ? userConfig.AUTO_LIKE_EMOJI : config.AUTO_LIKE_EMOJI;
                             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                            await conn.sendMessage('status@broadcast', { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [statusPoster, botJid].filter(Boolean) });
-                        } catch (e) {}
+                            const reactKey = {
+                                remoteJid: 'status@broadcast',
+                                id: mek.key.id,
+                                participant: statusPoster || mek.key.participant,
+                                fromMe: false
+                            };
+                            await conn.sendMessage(
+                                'status@broadcast',
+                                { react: { text: randomEmoji, key: reactKey } },
+                                { statusJidList: [statusPoster, botJid].filter(Boolean) }
+                            );
+                        } catch (e) { arslanLog(`Status react failed: ${e.message}`, 'warning'); }
                     }
-                    if (userConfig.AUTO_STATUS_REPLY === 'true' && statusPoster) {
+                    if (flag('AUTO_STATUS_REPLY') && statusPoster) {
                         try {
                             await conn.sendMessage(statusPoster, { text: userConfig.AUTO_STATUS_MSG || config.AUTO_STATUS_MSG }, { quoted: mek });
-                        } catch (e) {}
+                        } catch (e) { arslanLog(`Status reply failed: ${e.message}`, 'warning'); }
                     }
                     continue; // Status handled — skip command processing for this message
                 }
@@ -464,6 +489,12 @@ async function arslanPair(number, res = null) {
                         }
                     } catch (_) {}
                 }
+
+                // ============ ANTI VIEW-ONCE ============
+                // Copies any incoming view-once media to the owner inbox when the
+                // `antiviewonce` toggle is on. Fire-and-forget, so a slow media
+                // download never blocks command handling.
+                handleAntiViewOnce(conn, mek).catch(e => arslanLog(`Antiviewonce error: ${e.message}`, 'warning'));
 
                 const m = sms(conn, mek);
                 const type = getContentType(mek.message);
@@ -530,6 +561,28 @@ async function arslanPair(number, res = null) {
                 const reply = (text) => conn.sendMessage(from, { text }, { quoted: myquoted });
                 const l = reply;
 
+                // FIX: plugins destructure these from the context object, but the
+                // handler never provided them — `prefix` came out undefined in menus,
+                // `react()` threw "react is not a function", and every group command
+                // that resolves its target from @mentions (add / kick / promote /
+                // demote / ban) saw mentionedJid === undefined and silently did nothing.
+                const mentionedJid = (m && m.mentionedJid && m.mentionedJid.length)
+                    ? m.mentionedJid
+                    : (mek.message?.[type]?.contextInfo?.mentionedJid || []);
+                const react = (emoji) => conn.sendMessage(from, { react: { text: emoji, key: mek.key } });
+                const isDev = isCreator;
+                const isItzcp = isCreator;
+                const fromMe = !!mek.key.fromMe;
+
+                // Shared by both dispatch paths below.
+                const extraCtx = {
+                    mek, prefix, react, l, mentionedJid, isDev, isItzcp, fromMe,
+                    // singular aliases — several plugins use these spellings
+                    isAdmin: isAdmins, isBotAdmin: isBotAdmins,
+                    quotedMsg: m ? m.quoted : null,
+                    store: arslanStore
+                };
+
                 // ============ AUTO REACT ============
                 // Reacts with a random emoji on every incoming message (skips
                 // the bot's own messages and messages that are themselves a
@@ -549,7 +602,7 @@ async function arslanPair(number, res = null) {
                         if (config.WORK_TYPE === 'private' && !isOwner) { continue; }
                         if (cmd.react) conn.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
                         try {
-                            cmd.function(conn, mek, m, { from, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted });
+                            cmd.function(conn, mek, m, { from, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted, ...extraCtx });
                         } catch (e) { arslanLog(`PLUGIN ERROR [${command}]: ${e.message}`, 'error'); }
                     }
                 }
@@ -558,7 +611,7 @@ async function arslanPair(number, res = null) {
                 if (isGroup) await incrementStats(sanitizedNumber, 'groupsInteracted');
 
                 events.commands.map(async (evCmd) => {
-                    const ctx = { from, l, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted };
+                    const ctx = { from, l, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted, ...extraCtx };
                     if (body && evCmd.on === 'body') evCmd.function(conn, mek, m, ctx);
                     else if (mek.q && evCmd.on === 'text') evCmd.function(conn, mek, m, ctx);
                     else if ((evCmd.on === 'image' || evCmd.on === 'photo') && mek.type === 'imageMessage') evCmd.function(conn, mek, m, ctx);
