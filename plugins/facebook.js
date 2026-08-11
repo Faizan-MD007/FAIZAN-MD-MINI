@@ -54,9 +54,9 @@ async function fetchFacebookVideo(url, quality = "720p") {
 
 // ============ MAIN COMMAND ============
 cmd({
-    pattern: "facebook",
-    alias: ["fb", "fbdl", "facebookdl"],
-    desc: "Download Facebook videos using Faizan API",
+    pattern: "fbdirect",
+    alias: ["fbquality", "fbq2"],
+    desc: "Download a Facebook video directly at a chosen quality (no buttons)",
     category: "download",
     react: "📘",
     filename: __filename
@@ -66,8 +66,8 @@ cmd({
             return reply(`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰ 📘 𝐅𝐀𝐂𝐄𝐁𝐎𝐎𝐊 𝐃𝐎𝐖𝐍𝐋𝐎𝐀𝐃𝐄𝐑 📘 ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│❀ 📝 *Usage:* .fb <facebook_video_link> [quality]
-*│❀ 🎬 *Example:* .fb https://www.facebook.com/share/v/xxx
+*│❀ 📝 *Usage:* .fbdirect <facebook_video_link> [quality]
+*│❀ 🎬 *Example:* .fbdirect https://www.facebook.com/share/v/xxx
 *│❀ 🎚️ *Quality options:* 720p, 360p, 480p, 240p (default: highest)
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
@@ -141,7 +141,7 @@ cmd({
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
 ${list}
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│❀ 💡 Use:* .fb <link> <quality>
+*│❀ 💡 Use:* .fbdirect <link> <quality>
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
 > *𝐃σωɴℓσα∂є∂ 𝐒ᴜᴄᴄєѕѕfυℓℓу⎯꯭̽* ✅`;

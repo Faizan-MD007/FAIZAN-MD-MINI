@@ -6,7 +6,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const path = require('path');
-const { generateWAMessageFromContent, prepareWAMessageMedia } = require('@whiskeysockets/baileys');
+const { sendBtns } = require('../lib/buttons');
 
 // =================== FFMPEG SETUP ===================
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -154,52 +154,24 @@ cmd({
 ${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
 `;
 
+        // FIX: HD and SD both pointed at the same `downvideo <url>` command, so the
+        // two buttons did the identical thing. Quality is now passed through.
         const buttons = [
-            {
-                "name": "quick_reply",
-                "buttonParamsJson": `{"display_text":"🎵 AUDIO","id":"${prefix}downaudio ${videoInfo.url}"}`
-            },
-            {
-                "name": "quick_reply",
-                "buttonParamsJson": `{"display_text":"🎥 HD","id":"${prefix}downvideo ${videoInfo.url}"}`
-            },
-            {
-                "name": "quick_reply",
-                "buttonParamsJson": `{"display_text":"📺 SD","id":"${prefix}downvideo ${videoInfo.url}"}`
-            }
+            { display_text: "🎵 AUDIO", id: `${prefix}downaudio ${videoInfo.url}` },
+            { display_text: "🎥 HD",    id: `${prefix}downvideo ${videoInfo.url} hd` },
+            { display_text: "📺 SD",    id: `${prefix}downvideo ${videoInfo.url} sd` }
         ];
 
-        let header = {};
-        if (videoInfo.thumbnail) {
-            const media = await prepareWAMessageMedia({ image: { url: videoInfo.thumbnail } }, { upload: conn.waUploadToServer });
-            header = {
-                title: "✨ FAIZAN-MD ✨",
-                hasMediaAttachment: true,
-                imageMessage: media.imageMessage
-            };
-        } else {
-            header = {
-                title: "✨ FAIZAN-MD ✨",
-                hasMediaAttachment: false
-            };
-        }
-
-        const msg = generateWAMessageFromContent(from, {
-            viewOnceMessage: {
-                message: {
-                    interactiveMessage: {
-                        body: { text: buttonText },
-                        footer: { text: config.BOT_FOOTER },
-                        header: header,
-                        nativeFlowMessage: {
-                            buttons: buttons
-                        }
-                    }
-                }
-            }
-        }, { quoted: mek });
-
-        await conn.relayMessage(from, msg.message, { messageId: msg.key.id });
+        // Buttons go out through gifted-btns (see lib/buttons.js). The previous raw
+        // relayMessage(interactiveMessage) was accepted by baileys and then rendered
+        // as an empty message on the phone, which is why this menu never appeared.
+        await sendBtns(conn, from, {
+            title: "✨ FAIZAN-MD ✨",
+            text: buttonText,
+            footer: config.BOT_FOOTER,
+            ...(videoInfo.thumbnail ? { image: { url: videoInfo.thumbnail } } : {}),
+            buttons
+        }, mek);
 
     } catch (err) {
         console.error(err);
@@ -239,11 +211,12 @@ cmd({
 }, async (conn, mek, m, { from, args, reply }) => {
     if (!args.length) return;
     const url = args[0];
+    const wantSd = (args[1] || '').toLowerCase() === 'sd';
     try {
         await conn.sendMessage(from, { react: { text: '🎥', key: mek.key } });
         let result = await downloadWithFaizan(url, 'mp4');
         if (!result.success) throw new Error(result.error || "Download failed");
-        await conn.sendMessage(from, { video: { url: result.downloadUrl }, mimetype: 'video/mp4', caption: faizanStyle('VIDEO', result.title, '✅', result.quality, result.duration) }, { quoted: mek });
+        await conn.sendMessage(from, { video: { url: result.downloadUrl }, mimetype: 'video/mp4', caption: faizanStyle('VIDEO', result.title, '✅', wantSd ? `${result.quality} (SD)` : result.quality, result.duration) }, { quoted: mek });
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
     } catch (err) {
         reply(`❌ Error: ${err.message}`);
