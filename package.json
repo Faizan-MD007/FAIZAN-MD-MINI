@@ -29,6 +29,7 @@
     "file-type": "21.0.0",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^11.2.0",
+    "gifted-btns": "^1.0.0",
     "google-tts-api": "^2.0.2",
     "jimp": "latest",
     "moment-timezone": "^0.6.0",

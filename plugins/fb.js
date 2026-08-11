@@ -1,7 +1,7 @@
 const { cmd } = require('../arslan');
 const axios = require('axios');
 const config = require('../config');
-const { generateWAMessageFromContent } = require('@whiskeysockets/baileys');
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
   pattern: "fb",
@@ -37,35 +37,18 @@ ${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
 `;
 
     const buttons = [];
-    if (hd) {
-      buttons.push({
-        "name": "quick_reply",
-        "buttonParamsJson": `{"display_text":"🎥 HD","id":"${prefix}fb-dl ${hd}"}`
-      });
-    }
-    if (sd) {
-      buttons.push({
-        "name": "quick_reply",
-        "buttonParamsJson": `{"display_text":"📺 SD","id":"${prefix}fb-dl ${sd}"}`
-      });
-    }
+    if (hd) buttons.push({ display_text: "🎥 HD", id: `${prefix}fb-dl ${hd}` });
+    if (sd) buttons.push({ display_text: "📺 SD", id: `${prefix}fb-dl ${sd}` });
 
-    const msg = generateWAMessageFromContent(from, {
-        viewOnceMessage: {
-            message: {
-                interactiveMessage: {
-                    body: { text: buttonText },
-                    footer: { text: config.BOT_FOOTER },
-                    header: { title: "👑 FACEBOOK DOWNLOADER 👑", hasMediaAttachment: false },
-                    nativeFlowMessage: {
-                        buttons: buttons
-                    }
-                }
-            }
-        }
-    }, { quoted: mek });
-
-    await conn.relayMessage(from, msg.message, { messageId: msg.key.id });
+    // Buttons go out through gifted-btns (see lib/buttons.js) — the old raw
+    // relayMessage(interactiveMessage) rendered as an empty message on the phone.
+    await sendBtns(conn, from, {
+        title: "👑 FACEBOOK DOWNLOADER 👑",
+        text: buttonText,
+        footer: config.BOT_FOOTER,
+        ...(result.thumbnail ? { image: { url: result.thumbnail } } : {}),
+        buttons
+    }, mek);
 
   } catch (err) {
     console.error(err);
