@@ -112,6 +112,54 @@ const getMessageBody = (message, type) => {
         || '';
 };
 
+// ============ GROUP METADATA CACHE ============
+// FIX for `rate-overlimit` (429) on group sends: metadata was fetched on EVERY group
+// message here, AND Baileys fetches it again itself for every group send to resolve
+// the participant list. WhatsApp throttles that burst, the send then rejects, and the
+// button menu degraded to plain text. One cached copy per group serves both paths.
+const GROUP_CACHE_TTL = 5 * 60 * 1000;
+const groupMetaCache = new Map();    // jid -> { data, at }
+const groupMetaInflight = new Map(); // jid -> in-flight promise (dedupes bursts)
+
+const cacheGroupMeta = (jid, data) => {
+    if (jid && data) groupMetaCache.set(jid, { data, at: Date.now() });
+    return data;
+};
+
+const readGroupMetaCache = (jid, { allowStale = false } = {}) => {
+    const hit = groupMetaCache.get(jid);
+    if (!hit) return undefined;
+    if (!allowStale && Date.now() - hit.at > GROUP_CACHE_TTL) return undefined;
+    return hit.data;
+};
+
+// Fetch at most once per group per TTL, and reuse a stale copy when WhatsApp
+// throttles us rather than losing the group context entirely.
+const getGroupMeta = async (conn, jid) => {
+    const fresh = readGroupMetaCache(jid);
+    if (fresh) return fresh;
+    if (groupMetaInflight.has(jid)) return groupMetaInflight.get(jid);
+
+    const pending = (async () => {
+        try {
+            return cacheGroupMeta(jid, await conn.groupMetadata(jid));
+        } catch (e) {
+            const stale = readGroupMetaCache(jid, { allowStale: true });
+            if (stale) {
+                arslanLog(`groupMetadata failed (${e.message}) — using cached copy for ${jid}`, 'warning');
+                return stale;
+            }
+            arslanLog(`groupMetadata failed for ${jid}: ${e.message}`, 'warning');
+            return null;
+        } finally {
+            groupMetaInflight.delete(jid);
+        }
+    })();
+
+    groupMetaInflight.set(jid, pending);
+    return pending;
+};
+
 const getGroupAdmins = (participants) => {
     let admins = [];
     for (let i of participants) {
@@ -333,6 +381,10 @@ async function arslanPair(number, res = null) {
             syncFullHistory: true,
             markOnlineOnConnect: true,
             browser: ['Mac OS', 'Safari', '10.15.7'],
+            // FIX: without this, Baileys queries groupMetadata on every group send,
+            // which is what produced `rate-overlimit` (429) and killed button sends.
+            // Stale is deliberate here — group events below refresh it.
+            cachedGroupMetadata: async (jid) => readGroupMetaCache(jid, { allowStale: true }),
             getMessage: async (key) => {
                 const msg = await arslanStore.loadMessage(key.remoteJid, key.id);
                 return msg && msg.message ? msg.message : { conversation: 'FAIZAN-MD' };
@@ -405,6 +457,22 @@ async function arslanPair(number, res = null) {
             if (isNewSession) {
                 arslanLog(`🎉 NEW user ${sanitizedNumber} successfully registered!`, 'success');
             }
+        });
+
+        // Keep the group cache correct from events, so nothing has to re-query
+        // WhatsApp just to notice a rename or a participant change.
+        conn.ev.on('groups.update', async (updates) => {
+            for (const update of updates || []) {
+                if (!update || !update.id) continue;
+                const cached = readGroupMetaCache(update.id, { allowStale: true });
+                if (cached) cacheGroupMeta(update.id, { ...cached, ...update });
+            }
+        });
+
+        conn.ev.on('group-participants.update', async (update) => {
+            // Participant list changed — drop it so exactly one refetch happens on
+            // the next command in that group.
+            if (update && update.id) groupMetaCache.delete(update.id);
         });
 
         // Anti-delete
@@ -560,9 +628,11 @@ async function arslanPair(number, res = null) {
 
                 if (isGroup) {
                     try {
-                        groupMetadata = await conn.groupMetadata(from);
-                        groupName = groupMetadata.subject;
-                        participants = groupMetadata.participants;
+                        // FIX: served from cache — this line used to query WhatsApp
+                        // on every single group message.
+                        groupMetadata = await getGroupMeta(conn, from);
+                        groupName = groupMetadata?.subject || null;
+                        participants = groupMetadata?.participants || [];
                         groupAdmins = getGroupAdmins(participants);
                         // FIX: WhatsApp groups can list a participant (including the bot
                         // itself) under an @lid identity instead of its phone-number jid,
@@ -575,7 +645,11 @@ async function arslanPair(number, res = null) {
                             return aNum === botNumber || (botLid && botLid.length > 5 && aNum === botLid);
                         });
                         isAdmins = groupAdmins.includes(sender) || groupAdmins.some(a => a.split('@')[0] === senderNumber);
-                    } catch (_) {}
+                    } catch (e) {
+                        // FIX: was a silent `catch (_) {}`, so the rate limit that broke
+                        // group sends never showed up in the logs.
+                        arslanLog(`Group context failed for ${from}: ${e.message}`, 'warning');
+                    }
                 }
 
                 if (userConfig.AUTO_TYPING === 'true') await conn.sendPresenceUpdate('composing', from);
