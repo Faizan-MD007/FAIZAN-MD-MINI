@@ -1,5 +1,7 @@
 const { cmd } = require('../arslan');
 const config = require('../config');
+const { updateUserConfig } = require('../lib/database');
+const { sendToggleButtons } = require('../lib/toggle-buttons');
 
 // ==================== MESSAGE STORE ====================
 const messageStore = new Map();
@@ -145,6 +147,11 @@ async function handleDeletedMessage(conn, updates) {
 }
 
 // ==================== MAIN ANTI-DELETE COMMAND ====================
+// FIX: `config.ANTI_DELETE = 'true'` used to mutate the shared in-memory
+// config object only — never written to Mongo, so it reset to OFF on every
+// restart/redeploy and was shared across every paired number. Persisted the
+// same way as the rest of the toggles (lib/database.js updateUserConfig),
+// scoped per owner number.
 cmd({
     pattern: "antidel",
     alias: ["antidelete", "ad"],
@@ -153,37 +160,28 @@ cmd({
     react: "🛡️",
     filename: __filename
 },
-async (conn, mek, m, { from, args, reply, isCreator }) => {
+async (conn, mek, m, { from, args, reply, isCreator, botNumber, prefix }) => {
     try {
         if (!isCreator) return reply("❌ This command is only for owner!");
         
         if (!args[0]) {
-            const status = config.ANTI_DELETE === 'true' ? '✅ ON' : '❌ OFF';
-            const path = config.ANTI_DEL_PATH === 'inbox' ? '📥 Bot Inbox' : '💬 Same Chat';
-            
-            return reply(`╭────⬡ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³_ ⬡────
-├🛡️ *ANTI-DELETE STATUS*
-├──────────────────
-├📌 *Status:* ${status}
-├📌 *Destination:* ${path}
-├──────────────────
-├📝 *Usage:*
-├• .antidel on   - Enable
-├• .antidel off  - Disable
-├• .antidel path - Change destination
-╰────────────────────
-
-> ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 🤍`);
+            // Bare ".antidel" — tap-to-toggle buttons instead of a text-only status.
+            return sendToggleButtons(conn, mek, {
+                from, prefix, command: 'antidel', label: 'ANTI-DELETE',
+                current: config.ANTI_DELETE === 'true', reply
+            });
         }
         
         const option = args[0].toLowerCase();
         
         if (option === 'on') {
             config.ANTI_DELETE = 'true';
+            await updateUserConfig(botNumber, config);
             return reply(`✅ *Anti-Delete ENABLED*\n\nAll deleted messages will be sent to ${config.ANTI_DEL_PATH === 'inbox' ? 'your inbox' : 'the same chat'}.`);
         }
         else if (option === 'off') {
             config.ANTI_DELETE = 'false';
+            await updateUserConfig(botNumber, config);
             return reply(`❌ *Anti-Delete DISABLED*`);
         }
         else if (option === 'path' || option === 'destination') {
@@ -200,10 +198,12 @@ async (conn, mek, m, { from, args, reply, isCreator }) => {
             const dest = args[1].toLowerCase();
             if (dest === 'inbox') {
                 config.ANTI_DEL_PATH = 'inbox';
+                await updateUserConfig(botNumber, config);
                 return reply(`✅ *Destination changed to INBOX*\n\nDeleted messages will be sent to your DM.`);
             }
             else if (dest === 'same') {
                 config.ANTI_DEL_PATH = 'same';
+                await updateUserConfig(botNumber, config);
                 return reply(`✅ *Destination changed to SAME CHAT*\n\nDeleted messages will be resent in the same chat.`);
             }
             else {

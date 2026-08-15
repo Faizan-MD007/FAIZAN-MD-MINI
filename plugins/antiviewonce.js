@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const { getAntiViewOnceStatus, setAntiViewOnceStatus, GLOBAL_KEY } = require('../data/AntiViewOnce');
+const { sendToggleButtons } = require('../lib/toggle-buttons');
 
 cmd({
     pattern: 'antiviewonce',
@@ -8,7 +9,7 @@ cmd({
     desc: 'Auto-send every incoming view-once media to the owner inbox (on/off)',
     category: 'owner',
     filename: __filename
-}, async (conn, mek, m, { from, args, isCreator, reply }) => {
+}, async (conn, mek, m, { from, args, isCreator, reply, prefix }) => {
     try {
         if (!isCreator) return reply('*📛 Ye command sirf bot owner ke liye hai.*');
 
@@ -20,17 +21,12 @@ cmd({
 
         if (choice !== 'on' && choice !== 'off') {
             const globalOn = await getAntiViewOnceStatus(GLOBAL_KEY);
-            const chatOn = await getAntiViewOnceStatus(from);
-            return reply(
-                `👁️ *ANTI VIEW-ONCE*\n\n` +
-                `• All chats: *${globalOn ? 'ON' : 'OFF'}*\n` +
-                `• This chat: *${chatOn ? 'ON' : 'OFF'}*\n\n` +
-                `*Usage:*\n` +
-                `.antiviewonce on\n` +
-                `.antiviewonce off\n` +
-                `.antiviewonce on chat  (only this chat)\n\n` +
-                `ON hone ke baad jo bhi view-once photo/video/voice aayegi, wo automatic aap ke inbox me aa jayegi.`
-            );
+            // Bare ".antiviewonce" — tap-to-toggle buttons (global scope) instead of
+            // making the owner remember the on/off/chat syntax.
+            return sendToggleButtons(conn, mek, {
+                from, prefix, command: 'antiviewonce', label: 'ANTI VIEW-ONCE',
+                current: globalOn, reply
+            });
         }
 
         await setAntiViewOnceStatus(scope, choice === 'on');
