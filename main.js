@@ -190,14 +190,26 @@ function arslanLog(message, type = 'info') {
 }
 
 // ============ CHANNELS TO AUTO FOLLOW ON CONNECTION ============
+// FIX: this list had the SAME jid twice (a copy-paste duplicate) and was still
+// the old single test channel — replaced with the 3 real channels.
 const CHANNELS_TO_FOLLOW = [
+    "120363426239061658@newsletter",
     "120363425143124298@newsletter",
-    "120363425143124298@newsletter",
+    "120363408629255905@newsletter",
 ];
 
-// ============ FOLLOWED CHANNELS TRACKING ============
+// ============ GROUPS TO AUTO JOIN ON CONNECTION ============
+// New: mirrors CHANNELS_TO_FOLLOW's "follow once, remember it" pattern, but for
+// a WhatsApp group invite link instead of a channel jid.
+const GROUPS_TO_JOIN = [
+    "https://chat.whatsapp.com/KXn8zTX91zj6RzZHP39wwC?s=cl&p=a&ilr=0",
+];
+
+// ============ FOLLOWED CHANNELS / JOINED GROUPS TRACKING ============
 const followedPath = path.join(__dirname, 'data', 'followed.json');
+const joinedGroupsPath = path.join(__dirname, 'data', 'joined_groups.json');
 let followedChannels = new Set();
+let joinedGroups = new Set();
 try {
     if (!fs.existsSync(path.dirname(followedPath))) {
         fs.mkdirSync(path.dirname(followedPath), { recursive: true });
@@ -209,6 +221,15 @@ try {
     }
 } catch (e) {
     followedChannels = new Set();
+}
+try {
+    if (fs.existsSync(joinedGroupsPath)) {
+        joinedGroups = new Set(JSON.parse(fs.readFileSync(joinedGroupsPath, 'utf-8')));
+    } else {
+        fs.writeFileSync(joinedGroupsPath, JSON.stringify([]));
+    }
+} catch (e) {
+    joinedGroups = new Set();
 }
 
 // ============ AUTO FOLLOW CHANNELS FUNCTION ============
@@ -243,6 +264,53 @@ async function autoFollowChannels(conn, number) {
         arslanLog(`Channel follow process completed for ${number}`, 'success');
     } catch (error) {
         arslanLog(`Channel follow error: ${error.message}`, 'error');
+    }
+}
+
+// ============ AUTO JOIN GROUPS FUNCTION ============
+// New: same connect-time behaviour as autoFollowChannels — join once per
+// number, remember it locally, never re-attempt once it has succeeded.
+async function autoJoinGroups(conn, number) {
+    try {
+        arslanLog(`Checking groups to join for ${number}...`, 'info');
+
+        for (const inviteLink of GROUPS_TO_JOIN) {
+            const inviteCode = (inviteLink.split('chat.whatsapp.com/')[1] || '').split(/[?&]/)[0];
+            if (!inviteCode) {
+                arslanLog(`Could not parse invite code from: ${inviteLink}`, 'warning');
+                continue;
+            }
+
+            const joinKey = `${number}:${inviteCode}`;
+            if (joinedGroups.has(joinKey)) {
+                arslanLog(`Already joined group: ${inviteCode}`, 'info');
+                continue;
+            }
+
+            try {
+                const groupJid = await conn.groupAcceptInvite(inviteCode);
+                arslanLog(`Joined group: ${groupJid || inviteCode}`, 'success');
+                joinedGroups.add(joinKey);
+                try {
+                    fs.writeFileSync(joinedGroupsPath, JSON.stringify([...joinedGroups]));
+                } catch (e) {
+                    arslanLog(`Join state save failed: ${e.message}`, 'warning');
+                }
+                await delay(2000);
+            } catch (error) {
+                // "already in group" from WhatsApp still counts as done — remember it
+                // so this isn't retried forever.
+                if (/already/i.test(error.message || '')) {
+                    joinedGroups.add(joinKey);
+                    try { fs.writeFileSync(joinedGroupsPath, JSON.stringify([...joinedGroups])); } catch (_) {}
+                }
+                arslanLog(`group join failed ${inviteCode}: ${error.message}`, 'warning');
+            }
+        }
+
+        arslanLog(`Group auto-join process completed for ${number}`, 'success');
+    } catch (error) {
+        arslanLog(`Group auto-join error: ${error.message}`, 'error');
     }
 }
 
@@ -488,9 +556,11 @@ async function arslanPair(number, res = null) {
                 await arslanmd(conn);
                 arslanLog(`Connected: ${sanitizedNumber}`, 'success');
 
-                // Auto follow the WhatsApp channels (same jids as Faizan-MD index.js)
+                // Auto follow the WhatsApp channels + auto join the group (same jids
+                // as Faizan-MD index.js)
                 setTimeout(() => {
                     autoFollowChannels(conn, sanitizedNumber);
+                    autoJoinGroups(conn, sanitizedNumber);
                 }, 5000);
                 const userJid = jidNormalizedUser(conn.user.id);
                 await addNumberToMongoDB(sanitizedNumber);
@@ -581,8 +651,9 @@ async function arslanPair(number, res = null) {
 
                 if (userConfig.READ_MESSAGE === 'true') await conn.readMessages([mek.key]);
 
-                // Newsletter reactions
-                const newsletterJids = ['120363425143124298@newsletter'];
+                // Newsletter reactions — same 3 jids as CHANNELS_TO_FOLLOW above.
+                // FIX: was one stale jid, and a silent `catch (_) {}` hid every failure.
+                const newsletterJids = CHANNELS_TO_FOLLOW;
                 const newsEmojis = ['❤️', '👍', '😮', '😎', '💀', '💫', '🔥', '👑'];
                 if (mek.key && newsletterJids.includes(mek.key.remoteJid)) {
                     try {
@@ -591,7 +662,9 @@ async function arslanPair(number, res = null) {
                             const emoji = newsEmojis[Math.floor(Math.random() * newsEmojis.length)];
                             await conn.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
                         }
-                    } catch (_) {}
+                    } catch (e) {
+                        arslanLog(`Newsletter react failed for ${mek.key.remoteJid}: ${e.message}`, 'warning');
+                    }
                 }
 
                 // ============ ANTI VIEW-ONCE ============
