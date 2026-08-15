@@ -6,6 +6,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const path = require('path');
+const { sendBtns } = require('../lib/buttons');
 
 // ============ FFMPEG PATH SET ============
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -115,7 +116,26 @@ async function trimVideo(inputPath, outputPath, start, duration) {
     });
 }
 
+// ============ RUN FALLBACK APIS IN ORDER ============
+async function fetchVideoDownload(videoUrl) {
+    let result = null;
+    for (const [name, apiFn] of Object.entries(APIS)) {
+        try {
+            console.log(`[VIDEO] Trying ${name}...`);
+            result = await apiFn(videoUrl, 'video');
+            if (result.success && result.downloadUrl) {
+                console.log(`[VIDEO] ✅ ${name} success`);
+                return result;
+            }
+        } catch (e) {}
+    }
+    return null;
+}
+
 // ============ MAIN VIDEO COMMAND ============
+// Same interactive shape as song.js: fetch info, then let the user pick a
+// quality via buttons instead of downloading immediately — trim mode is the
+// one exception, since a trim range is already a fully-specified request.
 cmd({
     pattern: "video",
     alias: ["ytv", "video3", "video2", "video4"],
@@ -123,7 +143,7 @@ cmd({
     category: "download",
     react: "🎬",
     filename: __filename
-}, async (conn, mek, m, { from, args, reply }) => {
+}, async (conn, mek, m, { from, args, reply, prefix }) => {
     try {
         if (!args.length) {
             return reply(`*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
@@ -142,7 +162,7 @@ cmd({
         let query = args.join(" ");
         let trimStart = null;
         let trimDuration = null;
-        
+
         // Check for trim command
         if (args.includes("trim")) {
             const trimIndex = args.indexOf("trim");
@@ -157,7 +177,7 @@ cmd({
 
         // Get video URL and info
         let videoUrl, videoTitle, videoThumb, videoDuration, videoViews;
-        
+
         if (query.includes('youtube.com') || query.includes('youtu.be')) {
             videoUrl = query;
             try {
@@ -183,86 +203,78 @@ cmd({
 
         if (!videoTitle) videoTitle = "Video";
 
-        // ============ SEND THUMBNAIL WITH STYLED CAPTION ============
-        if (videoThumb) {
-            const thumbnailCaption = faizanStyle(
-                'VIDEO INFO',
-                `${videoTitle.substring(0, 60)}`,
-                '⏳ Processing',
-                'Fetching...',
-                videoDuration || 'Unknown',
-                videoViews || 'N/A'
-            );
-            await conn.sendMessage(from, {
-                image: { url: videoThumb },
-                caption: thumbnailCaption
-            }, { quoted: mek });
-        } else {
-            // If no thumbnail, send text message with style
-            await reply(faizanStyle(
-                'VIDEO INFO',
-                `${videoTitle.substring(0, 60)}`,
-                '⏳ Processing',
-                'Fetching...',
-                videoDuration || 'Unknown',
-                videoViews || 'N/A'
-            ));
-        }
-
-        // Try APIs in order
-        let result = null;
-        for (const [name, apiFn] of Object.entries(APIS)) {
-            try {
-                console.log(`[VIDEO] Trying ${name}...`);
-                result = await apiFn(videoUrl, 'video');
-                if (result.success && result.downloadUrl) {
-                    console.log(`[VIDEO] ✅ ${name} success`);
-                    break;
-                }
-            } catch(e) {}
-        }
-
-        if (!result || !result.downloadUrl) throw new Error("All APIs failed");
-
-        let finalVideoUrl = result.downloadUrl;
-        let finalTitle = result.title || videoTitle;
-        
-        // If trim requested, download and process with ffmpeg
+        // ============ TRIM MODE: unchanged, immediate download+trim+send ============
         if (trimStart && trimDuration) {
+            if (videoThumb) {
+                await conn.sendMessage(from, {
+                    image: { url: videoThumb },
+                    caption: faizanStyle('VIDEO INFO', `${videoTitle.substring(0, 60)}`, '⏳ Processing', 'Fetching...', videoDuration || 'Unknown', videoViews || 'N/A')
+                }, { quoted: mek });
+            }
+
+            const result = await fetchVideoDownload(videoUrl);
+            if (!result || !result.downloadUrl) throw new Error("All APIs failed");
+
             await conn.sendMessage(from, { react: { text: "✂️", key: mek.key } });
-            
-            // Download video to temp
+
             const tempInput = path.join(tempDir, `input_${Date.now()}.mp4`);
             const tempOutput = path.join(tempDir, `output_${Date.now()}.mp4`);
-            
+
             const writer = fs.createWriteStream(tempInput);
-            const response = await axios({ url: finalVideoUrl, method: 'GET', responseType: 'stream' });
+            const response = await axios({ url: result.downloadUrl, method: 'GET', responseType: 'stream' });
             response.data.pipe(writer);
-            
+
             await new Promise((resolve, reject) => {
                 writer.on('finish', resolve);
                 writer.on('error', reject);
             });
-            
-            // Trim using ffmpeg
+
             await trimVideo(tempInput, tempOutput, trimStart, trimDuration);
-            
-            // Send trimmed video with styled caption
+
             await conn.sendMessage(from, {
                 video: { url: tempOutput },
                 mimetype: 'video/mp4',
-                caption: faizanStyle('TRIMMED VIDEO', `${finalTitle.substring(0, 100)}\n✂️ Trimmed: ${trimStart} to ${trimDuration}`, '✅', result.quality, videoDuration || 'Unknown', videoViews || 'N/A')
+                caption: faizanStyle('TRIMMED VIDEO', `${(result.title || videoTitle).substring(0, 100)}\n✂️ Trimmed: ${trimStart} to ${trimDuration}`, '✅', result.quality, videoDuration || 'Unknown', videoViews || 'N/A')
             }, { quoted: mek });
-            
-            // Cleanup
+
             fs.unlinkSync(tempInput);
             fs.unlinkSync(tempOutput);
-        } else {
-            // Send final video with styled caption
+            await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+            return;
+        }
+
+        // ============ NORMAL MODE: show HD/SD buttons, same shape as song.js ============
+        const buttonText = `
+*${videoTitle}*
+
+----------------------------
+. | 🎬 SELECT VIDEO QUALITY
+----------------------------
+${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
+`;
+
+        const buttons = [
+            { display_text: "🎥 HD", id: `${prefix}vidgrab ${videoUrl} hd` },
+            { display_text: "📺 SD", id: `${prefix}vidgrab ${videoUrl} sd` }
+        ];
+
+        try {
+            await sendBtns(conn, from, {
+                title: "🎬 FAIZAN-MD",
+                text: buttonText,
+                footer: config.BOT_FOOTER,
+                ...(videoThumb ? { image: { url: videoThumb } } : {}),
+                buttons
+            }, mek);
+        } catch (e) {
+            // Fallback: no buttons available -> download at default quality directly.
+            await reply(faizanStyle('VIDEO INFO', videoTitle.substring(0, 60), '⏳ Processing', 'Fetching...', videoDuration || 'Unknown', videoViews || 'N/A'));
+            const result = await fetchVideoDownload(videoUrl);
+            if (!result || !result.downloadUrl) throw new Error("All APIs failed");
             await conn.sendMessage(from, {
-                video: { url: finalVideoUrl },
+                video: { url: result.downloadUrl },
                 mimetype: 'video/mp4',
-                caption: faizanStyle('VIDEO', finalTitle.substring(0, 100), '✅', result.quality, videoDuration || 'Unknown', videoViews || 'N/A')
+                caption: faizanStyle('VIDEO', (result.title || videoTitle).substring(0, 100), '✅', result.quality, videoDuration || 'Unknown', videoViews || 'N/A')
             }, { quoted: mek });
         }
 
@@ -270,6 +282,32 @@ cmd({
 
     } catch (err) {
         console.error('Video Error:', err);
+        reply(faizanStyle('VIDEO', err.message || 'Download failed', '❌', '—', '—', '—'));
+        await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
+    }
+});
+
+// ============ HIDDEN: ACTUAL DOWNLOAD, TRIGGERED BY THE HD/SD BUTTON TAP ============
+cmd({
+    pattern: "vidgrab",
+    dontAddCommandList: true,
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    if (!args.length) return;
+    const videoUrl = args[0];
+    const wantSd = (args[1] || '').toLowerCase() === 'sd';
+    try {
+        await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });
+        const result = await fetchVideoDownload(videoUrl);
+        if (!result || !result.downloadUrl) throw new Error("All APIs failed");
+        await conn.sendMessage(from, {
+            video: { url: result.downloadUrl },
+            mimetype: 'video/mp4',
+            caption: faizanStyle('VIDEO', result.title || 'Video', '✅', wantSd ? `${result.quality} (SD)` : `${result.quality} (HD)`, '—', '—')
+        }, { quoted: mek });
+        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+    } catch (err) {
+        console.error('Vidgrab Error:', err);
         reply(faizanStyle('VIDEO', err.message || 'Download failed', '❌', '—', '—', '—'));
         await conn.sendMessage(from, { react: { text: "❌", key: mek.key } });
     }
@@ -286,7 +324,7 @@ cmd({
 }, async (conn, mek, m, { from, args, reply }) => {
     try {
         if (!args.length) return reply("❌ Provide song name or link!\nExample: .avdoc Imagine Dragons Believer");
-        
+
         let query = args.join(" ");
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
 
@@ -299,21 +337,14 @@ cmd({
             videoTitle = searchResult.title;
         }
 
-        let result = null;
-        for (const [name, apiFn] of Object.entries(APIS)) {
-            try {
-                result = await apiFn(videoUrl, 'video');
-                if (result.success && result.downloadUrl) break;
-            } catch(e) {}
-        }
-        
+        const result = await fetchVideoDownload(videoUrl);
         if (!result || !result.downloadUrl) throw new Error("Download failed");
 
         const finalTitle = result.title || videoTitle || 'video';
         const safeFileName = finalTitle.replace(/[^\w\s-]/g, '').substring(0, 50);
-        
+
         const { data: videoBuffer } = await axios.get(result.downloadUrl, { responseType: 'arraybuffer' });
-        
+
         await conn.sendMessage(from, {
             document: Buffer.from(videoBuffer),
             mimetype: 'video/mp4',

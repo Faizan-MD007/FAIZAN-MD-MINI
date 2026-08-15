@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const config = require('../config');
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
     pattern: "owner",
@@ -12,6 +13,7 @@ async (conn, mek, m, { from }) => {
     try {
         const ownerNumber = config.OWNER_NUMBER;
         const ownerName = config.OWNER_NAME || "𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³_";
+        const waNumber = ownerNumber.replace(/[^0-9]/g, '');
 
         // vCard
         const vcard = 
@@ -19,7 +21,7 @@ async (conn, mek, m, { from }) => {
 VERSION:3.0
 FN:${ownerName}
 ORG:FAIZAN-MD;
-TEL;type=CELL;type=VOICE;waid=${ownerNumber.replace('+', '')}:${ownerNumber}
+TEL;type=CELL;type=VOICE;waid=${waNumber}:${ownerNumber}
 END:VCARD`;
 
         // Styled caption message
@@ -31,25 +33,29 @@ END:VCARD`;
 *│*
 *│📛 𝐍𝐚𝐦𝐞:* ${ownerName}
 *│📞 𝐍𝐮𝐦𝐛𝐞𝐫:* ${ownerNumber}
-*│*
-*│💬 Tap contact to chat*
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³_
 `;
 
-        // Send styled text
-        await conn.sendMessage(from, {
-            text: caption
-        }, { quoted: mek });
-
-        // Send contact card (ONLY contact, no extra data)
-        await conn.sendMessage(from, {
-            contacts: {
-                displayName: ownerName,
-                contacts: [{ vcard }]
-            }
-        }, { quoted: mek });
+        // 2 buttons as requested: DIRECT CHAT opens wa.me straight into a chat
+        // with the owner; NUMBER copies the raw number to the clipboard.
+        try {
+            await sendBtns(conn, from, {
+                title: '👑 OWNER',
+                text: caption,
+                buttons: [
+                    { display_text: '💬 DIRECT CHAT', url: `https://wa.me/${waNumber}` },
+                    { display_text: '📋 NUMBER', copy_code: ownerNumber }
+                ]
+            }, mek);
+        } catch (e) {
+            // Fallback: no buttons available -> send styled text + contact card, as before.
+            await conn.sendMessage(from, { text: caption }, { quoted: mek });
+            await conn.sendMessage(from, {
+                contacts: { displayName: ownerName, contacts: [{ vcard }] }
+            }, { quoted: mek });
+        }
 
     } catch (error) {
         console.error("OWNER CMD ERROR:", error);

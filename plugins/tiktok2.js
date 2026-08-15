@@ -2,6 +2,7 @@ const { cmd } = require("../arslan")
 const axios = require("axios")
 const crypto = require("crypto")
 const Buffer = require("buffer").Buffer
+const { sendBtns } = require('../lib/buttons')
 
 // ===== Encryption Keys =====
 const KEY_MAP = {
@@ -51,13 +52,20 @@ async function tiktokCrypto(url) {
   if (!data || data.status !== "success")
     throw new Error(data.message || "API Error")
 
+  // `data.data` is savetik's primary (no-watermark) video field. A separate
+  // watermarked variant isn't guaranteed by this API -- check the field names
+  // it uses when present, otherwise the "MARK" button falls back to the same
+  // no-watermark source (flagged in its caption rather than pretending).
   const decryptedVideo = cryptoProc("dec", data.data)
+  const wmField = data.data_wm || data.wmplay || data.videoWm || data.play_wm
+  const decryptedWmVideo = wmField ? cryptoProc("dec", wmField) : null
 
   return {
     title: data.title || "Unknown",
     author: data.username || "Unknown",
     thumbnail: data.thumbnailUrl || "",
     video: decryptedVideo,
+    videoWm: decryptedWmVideo,
     audio: data.mp3 || null,
   }
 }
@@ -81,7 +89,7 @@ cmd({
   react: "🎬",
   filename: __filename
 },
-async (conn, mek, m, { from, reply, args }) => {
+async (conn, mek, m, { from, reply, args, prefix }) => {
 
   try {
 
@@ -89,8 +97,8 @@ async (conn, mek, m, { from, reply, args }) => {
       return reply(`
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³_ ⊱┈─̇─̣╌*
-*│❀ 🎬 𝐔𝐬𝐚𝐠𝐞:* .tiktok <url>
-*│❀ 📌 𝐄𝐱𝐚𝐦𝐩𝐥𝐞:* .tt https://vt.tiktok.com/xxxx
+*│❀ 🎬 𝐔𝐬𝐚𝐠𝐞:* .tiktok2 <url>
+*│❀ 📌 𝐄𝐱𝐚𝐦𝐩𝐥𝐞:* .tt2 https://vt.tiktok.com/xxxx
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 🤍
 `)
@@ -98,41 +106,48 @@ async (conn, mek, m, { from, reply, args }) => {
 
     const url = args[0]
 
-    await reply("⏳ 𝐃𝐞𝐜𝐫𝐲𝐩𝐭𝐢𝐧𝐠 & 𝐏𝐫𝐞𝐩𝐚𝐫𝐢𝐧𝐠 𝐕𝐢𝐝𝐞𝐨...")
+    await reply("⏳ 𝐃𝐞𝐜𝐫𝐲𝐩𝐭𝐢𝐧𝐠 & 𝐏𝐫𝐞𝐩𝐚𝐫𝐢𝐧𝐠...")
 
     const result = await tiktokCrypto(url)
 
-    const videoBuffer = await fetchPlayableVideo(result.video)
-
-    const caption = `
+    const infoText = `
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 *│ ╌─̇─̣⊰ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³_ ⊱┈─̇─̣╌*
 *│❀ 🎬 𝐓𝐢𝐭𝐥𝐞:* ${result.title}
 *│❀ 👤 𝐀𝐮𝐭𝐡𝐨𝐫:* @${result.author}
 *│❀ 🔐 𝐌𝐨𝐝𝐞:* Encrypted API
-*│❀ ✅ 𝐒𝐭𝐚𝐭𝐮𝐬:* Downloaded
+*│❀ ⚙️ 𝐒𝐭𝐚𝐭𝐮𝐬:* Ready — pick an option below
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 🤍
 `
 
-    await conn.sendMessage(from, {
-      video: videoBuffer,
-      mimetype: "video/mp4",
-      caption
-    }, { quoted: mek })
-
-    if (result.audio) {
-      await conn.sendMessage(from, {
-        audio: { url: result.audio },
-        mimetype: "audio/mpeg",
-        fileName: "tiktok_audio.mp3"
-      }, { quoted: mek })
+    // 3 buttons as requested: WITHOUT MARK / MARK / AUDIO, each routed to the
+    // hidden tt2grab handler which re-runs the decrypt (button taps carry the
+    // original URL, not the raw decrypted media link).
+    try {
+      await sendBtns(conn, from, {
+        title: '🎬 TIKTOK',
+        text: infoText,
+        ...(result.thumbnail ? { image: { url: result.thumbnail } } : {}),
+        buttons: [
+          { display_text: '🚫 WITHOUT MARK', id: `${prefix}tt2grab ${url} nomark` },
+          { display_text: '💧 MARK', id: `${prefix}tt2grab ${url} mark` },
+          { display_text: '🎵 AUDIO', id: `${prefix}tt2grab ${url} audio` }
+        ]
+      }, mek)
+    } catch (e) {
+      // Fallback: no buttons available -> send video (+ audio if present), as before.
+      const videoBuffer = await fetchPlayableVideo(result.video)
+      await conn.sendMessage(from, { video: videoBuffer, mimetype: "video/mp4", caption: infoText }, { quoted: mek })
+      if (result.audio) {
+        await conn.sendMessage(from, { audio: { url: result.audio }, mimetype: "audio/mpeg", fileName: "tiktok_audio.mp3" }, { quoted: mek })
+      }
     }
 
   } catch (err) {
 
-    console.error("TT ERROR:", err.message)
+    console.error("TT2 ERROR:", err.message)
 
     reply(`
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
@@ -144,4 +159,44 @@ async (conn, mek, m, { from, reply, args }) => {
 `)
   }
 
+})
+
+// ============ HIDDEN: ACTUAL DOWNLOAD, TRIGGERED BY BUTTON TAP ============
+cmd({
+  pattern: "tt2grab",
+  dontAddCommandList: true,
+  filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+  if (args.length < 2) return
+  const mode = args[args.length - 1].toLowerCase()
+  const url = args.slice(0, -1).join(' ')
+  try {
+    const result = await tiktokCrypto(url)
+
+    if (mode === 'audio') {
+      if (!result.audio) throw new Error('No audio track found for this video')
+      await conn.sendMessage(from, {
+        audio: { url: result.audio },
+        mimetype: "audio/mpeg",
+        fileName: "tiktok_audio.mp3"
+      }, { quoted: mek })
+      return
+    }
+
+    const wantMark = mode === 'mark'
+    const sourceUrl = wantMark && result.videoWm ? result.videoWm : result.video
+    const videoBuffer = await fetchPlayableVideo(sourceUrl)
+    const note = (wantMark && !result.videoWm)
+      ? '\n*│❀ ⚠️ 𝐍𝐨𝐭𝐞:* No separate watermarked source from this API — sent without mark.'
+      : ''
+
+    await conn.sendMessage(from, {
+      video: videoBuffer,
+      mimetype: "video/mp4",
+      caption: `*🎬 ${result.title}*\n*👤 @${result.author}*${note}`
+    }, { quoted: mek })
+
+  } catch (err) {
+    reply(`❌ Download Failed: ${err.message}`)
+  }
 })

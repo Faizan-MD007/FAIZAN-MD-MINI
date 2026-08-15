@@ -1,48 +1,11 @@
 const { cmd, commands } = require('../arslan');
 const axios = require('axios');
 
-cmd({
-    pattern: "pair",
-    alias: ["getpaijsksnsr", "pairing", "clonebnsjdndnznot"],
-    react: "✅",
-    desc: "Get pairing code for FAIZAN-MD bot",
-    category: "download",
-    use: ".pair 92323***",
-    filename: __filename
-}, async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, senderNumber, reply }) => {
-    try {
-        // Extract phone number from command
-        const phoneNumber = q ? q.trim().replace(/[^0-9]/g, '') : senderNumber.replace(/[^0-9]/g, '');
-
-        // Validate phone number format
-        if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 15) {
-            return await reply("❌ Please provide a valid phone number without `+`\nExample: `.pair 92323***`");
-        }
-
-        // Make API request to get pairing code
-        const response = await axios.get(`https://arslan-mini-bot-e4ec84c138eb.herokuapp.com/code?number=${encodeURIComponent(phoneNumber)}`);
-
-        if (!response.data || !response.data.code) {
-            return await reply("❌ Failed to retrieve pairing code. Please try again later.");
-        }
-
-        const pairingCode = response.data.code;
-        const doneMessage = "> *PAIRING COMPLETED*";
-
-        // Send initial message with formatting
-        await reply(`${doneMessage}\n\n*Your pairing code is:* ${pairingCode}`);
-
-        // Optional 2-second delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Send clean code again
-        await reply(`${pairingCode}`);
-
-    } catch (error) {
-        console.error("Pair command error:", error);
-        await reply("❌ An error occurred while getting pairing code. Please try again later.");
-    }
-});
+// FIX: this file's `pair` registration collided with plugins/get-pair.js's
+// `pair` (same command name, two files) — only the first-loaded one ever
+// actually ran. get-pair.js has the retry-hardened, button-equipped version,
+// so the duplicate `pair` handler here has been removed; `pair2` (a distinct
+// alternate flow / different alias set) is kept as-is.
 
 cmd({
     pattern: "pair2",
