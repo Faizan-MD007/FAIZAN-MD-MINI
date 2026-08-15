@@ -1,6 +1,7 @@
 const { cmd } = require('../arslan');
 const axios = require('axios');
 const config = require('../config');
+const { sendBtns } = require('../lib/buttons');
 
 const PAIR_API = 'https://paring-site-44t7.onrender.com/pair';
 
@@ -136,15 +137,25 @@ cmd({
         // ── Success ──
         await conn.sendMessage(from, { react: { text: '✅', key: mek.key } });
 
-        await reply(faizanStyle(
-            'PAIRING CODE',
-            `📱 *Number:* +${phone}\n*│❀ 🔑 Code:* \`${result.code}\``,
-            '✅ Successfully Generated'
-        ));
-
-        // Send code alone for easy copy-paste
-        await new Promise(r => setTimeout(r, 1500));
-        await reply(`*${result.code}*`);
+        // Single "copy" button carrying the raw code — tapping it copies just
+        // the code instead of the whole styled message.
+        try {
+            await sendBtns(conn, from, {
+                title: '🔗 PAIRING CODE',
+                text: `📱 *Number:* +${phone}\n*│❀ 🔑 Code:* \`${result.code}\``,
+                footer: '✅ Successfully Generated',
+                buttons: [
+                    { display_text: '📋 COPY CODE', copy_code: result.code }
+                ]
+            }, mek);
+        } catch (e) {
+            await reply(faizanStyle(
+                'PAIRING CODE',
+                `📱 *Number:* +${phone}\n*│❀ 🔑 Code:* \`${result.code}\``,
+                '✅ Successfully Generated'
+            ));
+            await reply(`*${result.code}*`);
+        }
 
     } catch (err) {
         console.error('[Pair] Fatal error:', err.message);

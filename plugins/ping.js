@@ -2,6 +2,7 @@ const { cmd } = require('../arslan');
 const config = require('../config');
 const os = require('os');
 const { runtime } = require('../lib/functions');
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
     pattern: "ping",
@@ -10,7 +11,7 @@ cmd({
     category: "info",
     react: "🏓",
     filename: __filename
-}, async (conn, mek, m, { from, reply, isOwner }) => {
+}, async (conn, mek, m, { from, reply, isOwner, prefix }) => {
     try {
         const start = Date.now();
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
@@ -48,7 +49,22 @@ cmd({
 
 > ${config.BOT_FOOTER || '© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜰᴀɪᴢᴀɴ-ᴍᴅ'} ✅`;
 
-        await reply(message);
+        // 4 buttons as requested: alive / uptime / menu (quick replies) + the
+        // WhatsApp channel (a real link, so it has to be a cta_url button).
+        try {
+            await sendBtns(conn, from, {
+                title: `🏓 ${botName}`,
+                text: message,
+                buttons: [
+                    { display_text: '💚 ALIVE', id: `${prefix}alive` },
+                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` },
+                    { display_text: '📜 MENU', id: `${prefix}menu` },
+                    { display_text: '📢 CHANNEL', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
+                ]
+            }, mek);
+        } catch (e) {
+            await reply(message);
+        }
 
         if (pingTime < 200) await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
         else if (pingTime < 500) await conn.sendMessage(from, { react: { text: "⚠️", key: mek.key } });

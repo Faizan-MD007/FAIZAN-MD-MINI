@@ -1,4 +1,5 @@
 const { cmd } = require("../arslan");
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
   pattern: "cid",
@@ -82,13 +83,26 @@ cmd({
 
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³`;
 
-    if (metadata.preview) {
-      await conn.sendMessage(from, {
-        image: { url: `https://pps.whatsapp.net${metadata.preview}` },
-        caption: infoText
-      }, { quoted: m });
-    } else {
-      await reply(infoText);
+    // Single "copy jid" button — the ask was specifically the channel ID, not
+    // the whole info block, so it's a copy_code CTA rather than a quick reply.
+    try {
+      await sendBtns(conn, from, {
+        title: '📡 CHANNEL INFO',
+        text: infoText,
+        ...(metadata.preview ? { image: { url: `https://pps.whatsapp.net${metadata.preview}` } } : {}),
+        buttons: [
+          { display_text: '📋 COPY JID', copy_code: metadata.id }
+        ]
+      }, m);
+    } catch (e) {
+      if (metadata.preview) {
+        await conn.sendMessage(from, {
+          image: { url: `https://pps.whatsapp.net${metadata.preview}` },
+          caption: infoText
+        }, { quoted: m });
+      } else {
+        await reply(infoText);
+      }
     }
 
   } catch (error) {

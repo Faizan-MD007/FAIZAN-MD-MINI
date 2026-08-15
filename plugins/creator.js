@@ -1,5 +1,6 @@
 const { cmd } = require('../arslan');
 const config = require('../config');
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
     pattern: "creator",
@@ -8,7 +9,7 @@ cmd({
     category: "info",
     react: "👑",
     filename: __filename
-}, async (conn, mek, m, { from, sender, reply }) => {
+}, async (conn, mek, m, { from, sender, reply, prefix }) => {
     try {
 
         const ownerInfo = {
@@ -33,20 +34,30 @@ cmd({
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 _⁸⁷³
 `;
 
-        await conn.sendMessage(from, {
-            image: { url: ownerInfo.photo },
-            caption,
-            contextInfo: {
-                mentionedJid: [sender],
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363425143124298@newsletter',
-                    newsletterName: '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃',
-                    serverMessageId: 143
-                }
+        const contextInfo = {
+            mentionedJid: [sender],
+            forwardingScore: 999,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: '120363425143124298@newsletter',
+                newsletterName: '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃',
+                serverMessageId: 143
             }
-        }, { quoted: mek });
+        };
+
+        // "Uptime" button below the creator card, as requested.
+        try {
+            await sendBtns(conn, from, {
+                title: '👑 CREATOR',
+                text: caption,
+                image: { url: ownerInfo.photo },
+                buttons: [
+                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` }
+                ]
+            }, mek);
+        } catch (e) {
+            await conn.sendMessage(from, { image: { url: ownerInfo.photo }, caption, contextInfo }, { quoted: mek });
+        }
 
     } catch (err) {
         console.error("CREATOR ERROR:", err);

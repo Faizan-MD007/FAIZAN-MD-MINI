@@ -1,6 +1,6 @@
 const { cmd } = require("../arslan");
-const fetch = require("node-fetch");
 const axios = require("axios");
+const { sendBtns } = require('../lib/buttons');
 
 cmd({
     pattern: "tiny",
@@ -11,22 +11,29 @@ cmd({
     use: "<url>",
     filename: __filename,
 },
-async (conn, mek, m, { from, quoted, isOwner, isAdmins, reply, args }) => {
-    console.log("Command tiny triggered"); // Ajoutez ceci pour vérifier si la commande est déclenchée
-
+async (conn, mek, m, { from, reply, args }) => {
     if (!args[0]) {
-        console.log("No URL provided"); // Ajoutez ceci pour vérifier si l'URL est fournie
         return reply("*🏷️ ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀ ʟɪɴᴋ.*");
     }
 
     try {
         const link = args[0];
-        console.log("URL to shorten:", link); // Ajoutez ceci pour vérifier l'URL fournie
         const response = await axios.get(`https://tinyurl.com/api-create.php?url=${link}`);
         const shortenedUrl = response.data;
 
-        console.log("Shortened URL:", shortenedUrl); // Ajoutez ceci pour vérifier l'URL raccourcie
-        return reply(`*🛡️YOUR SHORTENED URL*\n\n${shortenedUrl}`);
+        // Single "copy url" button so the shortened link can be tapped straight
+        // into the clipboard instead of long-pressing the message text.
+        try {
+            await sendBtns(conn, from, {
+                title: '🛡️ SHORT URL',
+                text: `*🛡️ YOUR SHORTENED URL*\n\n${shortenedUrl}`,
+                buttons: [
+                    { display_text: '📋 COPY URL', copy_code: shortenedUrl }
+                ]
+            }, mek);
+        } catch (e) {
+            return reply(`*🛡️YOUR SHORTENED URL*\n\n${shortenedUrl}`);
+        }
     } catch (e) {
         console.error("Error shortening URL:", e);
         return reply("An error occurred while shortening the URL. Please try again.");

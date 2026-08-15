@@ -2,6 +2,7 @@ const { cmd, commands } = require('../arslan');
 const config = require('../config');
 const fs = require('fs');
 const path = require('path');
+const { sendBtns } = require('../lib/buttons');
 
 // Emojis arrays
 const menuEmojis = ['✨', '❤️‍🩹', '⭐', '💫', '🎯', '🎨', '🎪', '🎭'];
@@ -59,7 +60,7 @@ cmd({
     category: "menu",
     filename: __filename
 },
-async (conn, mek, m, { from, sender, reply }) => {
+async (conn, mek, m, { from, sender, reply, prefix }) => {
     try {
         // Get all commands
         const allCommands = Array.from(commands.values());
@@ -148,24 +149,39 @@ async (conn, mek, m, { from, sender, reply }) => {
         // Image (falls back to the bot's default image if MENU_IMAGE_URL is unset)
         const menuImageUrl = config.MENU_IMAGE_URL || config.IMAGE_PATH || '';
 
-        // Newsletter context (channel forward branding)
-        const contextInfo = {
-            mentionedJid: [sender],
-            forwardingScore: 999,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-                newsletterJid: '120363425143124298@newsletter',
-                newsletterName: config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃',
-                serverMessageId: 143
-            }
-        };
-
-        // Send with image
-        await conn.sendMessage(from, {
-            image: { url: menuImageUrl },
-            caption: menuText,
-            contextInfo: contextInfo
-        }, { quoted: mek });
+        // 4 buttons as requested: ping / owner / uptime (quick replies) + the
+        // WhatsApp channel (a real link, so it has to be a cta_url button).
+        try {
+            await sendBtns(conn, from, {
+                title: `📜 ${config.BOT_NAME || 'FAIZAN-MD'}`,
+                text: menuText,
+                image: { url: menuImageUrl },
+                buttons: [
+                    { display_text: '🏓 PING', id: `${prefix}ping` },
+                    { display_text: '👑 OWNER', id: `${prefix}owner` },
+                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` },
+                    { display_text: '📢 CHANNEL', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
+                ]
+            }, mek);
+        } catch (e) {
+            // Newsletter context (channel forward branding) — same fallback shape
+            // this command used before buttons existed.
+            const contextInfo = {
+                mentionedJid: [sender],
+                forwardingScore: 999,
+                isForwarded: true,
+                forwardedNewsletterMessageInfo: {
+                    newsletterJid: '120363425143124298@newsletter',
+                    newsletterName: config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃',
+                    serverMessageId: 143
+                }
+            };
+            await conn.sendMessage(from, {
+                image: { url: menuImageUrl },
+                caption: menuText,
+                contextInfo: contextInfo
+            }, { quoted: mek });
+        }
 
     } catch (error) {
         console.error('Menu Error:', error);

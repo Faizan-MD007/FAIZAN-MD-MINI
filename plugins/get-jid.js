@@ -8,21 +8,30 @@ cmd({
     category: "utility",
     filename: __filename,
 }, async (conn, mek, m, { 
-    from, isGroup, isCreator, reply, sender 
+    from, isGroup, isCreator, reply, sender, prefix
 }) => {
     try {
         if (!isCreator) {
             return reply("❌ *Command Restricted* - Only my creator can use this.");
         }
 
-        if (isGroup) {
-            // Ensure group JID ends with @g.us
-            const groupJID = from.includes('@g.us') ? from : `${from}@g.us`;
-            return reply(`👥 *Group JID:*\n\`\`\`${groupJID}\`\`\``);
-        } else {
-            // Ensure user JID ends with @s.whatsapp.net
-            const userJID = sender.includes('@s.whatsapp.net') ? sender : `${sender}@s.whatsapp.net`;
-            return reply(`👤 *User JID:*\n\`\`\`${userJID}\`\`\``);
+        const targetJid = isGroup
+            ? (from.includes('@g.us') ? from : `${from}@g.us`)
+            : (sender.includes('@s.whatsapp.net') ? sender : `${sender}@s.whatsapp.net`);
+        const label = isGroup ? '👥 *Group JID:*' : '👤 *User JID:*';
+
+        // Single "copy jid" button — same shape as .tiny's "copy url" button.
+        const { sendBtns } = require('../lib/buttons');
+        try {
+            await sendBtns(conn, from, {
+                title: '🆔 JID',
+                text: `${label}\n\`\`\`${targetJid}\`\`\``,
+                buttons: [
+                    { display_text: '📋 COPY JID', copy_code: targetJid }
+                ]
+            }, mek);
+        } catch (e) {
+            return reply(`${label}\n\`\`\`${targetJid}\`\`\``);
         }
 
     } catch (e) {
