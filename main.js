@@ -31,6 +31,7 @@ const {
 } = require('./lib/database');
 const { handleAntidelete } = require('./lib/antidelete');
 const { handleAntiViewOnce } = require('./lib/antiviewonce');
+const { installProcessGuards, startRuntimeMonitor } = require('./lib/runtime-guard');
 
 const express = require('express');
 const fs = require('fs-extra');
@@ -40,6 +41,8 @@ const crypto = require('crypto');
 const FileType = require('file-type');
 const axios = require('axios');
 const moment = require('moment-timezone');
+const { Readable } = require('stream');
+const { finished } = require('stream/promises');
 
 const prefix = config.PREFIX;
 const mode = config.MODE || config.WORK_TYPE;
@@ -50,6 +53,23 @@ connectdb();
 
 const activeSockets = new Map();
 const socketCreationTime = new Map();
+const runtimeStates = new Map();
+const TEMP_DIRECTORIES = [
+    path.join(__dirname, 'temp'),
+    path.join(__dirname, 'tmp')
+];
+const MAX_MESSAGE_QUEUE = 100;
+const STALL_TIMEOUT_MS = 10 * 60 * 1000;
+
+const clearRuntimeCaches = () => {
+    const now = Date.now();
+    for (const [jid, hit] of groupMetaCache) {
+        if (!hit || now - hit.at > GROUP_CACHE_TTL * 2) groupMetaCache.delete(jid);
+    }
+    for (const [jid, pending] of groupMetaInflight) {
+        if (!pending) groupMetaInflight.delete(jid);
+    }
+};
 
 
 function createarslanStore() {
@@ -62,7 +82,14 @@ function createarslanStore() {
                     if (!jid) continue;
                     if (!store.messages[jid]) store.messages[jid] = [];
                     store.messages[jid].push(msg);
-                    if (store.messages[jid].length > 200) store.messages[jid].shift();
+                    if (store.messages[jid].length > 100) store.messages[jid].splice(0, store.messages[jid].length - 100);
+                    const chatIds = Object.keys(store.messages);
+                    if (chatIds.length > 100) {
+                        const oldest = chatIds
+                            .map(id => ({ id, at: store.messages[id][0]?.messageTimestamp || 0 }))
+                            .sort((a, b) => a.at - b.at)[0];
+                        if (oldest) delete store.messages[oldest.id];
+                    }
                 }
             });
         },
@@ -188,6 +215,54 @@ function arslanLog(message, type = 'info') {
     const icons = { info: '📝', success: '✅', error: '❌', warning: '⚠️', debug: '🐛' };
     console.log(`${icons[type] || '📝'} [FAIZAN-MD-MINI] ${new Date().toISOString()}: ${message}`);
 }
+
+let lastMemoryRecoveryAt = 0;
+installProcessGuards({
+    log: arslanLog,
+    onMemoryPressure: (reason) => {
+        clearRuntimeCaches();
+        for (const state of runtimeStates.values()) {
+            if (state.store?.messages) state.store.messages = {};
+        }
+        arslanLog(`Runtime recovery cleanup completed (${reason})`, 'warning');
+    }
+});
+
+const runtimeMonitor = startRuntimeMonitor({
+    log: arslanLog,
+    getSockets: () => activeSockets,
+    getStates: () => runtimeStates.values(),
+    getTempDirs: () => TEMP_DIRECTORIES,
+    onMemoryPressure: ({ hard }) => {
+        const now = Date.now();
+        if (!hard || now - lastMemoryRecoveryAt < 10 * 60 * 1000) return;
+        lastMemoryRecoveryAt = now;
+        arslanLog('Hard memory threshold reached; restarting active connections after cleanup', 'error');
+        clearRuntimeCaches();
+        for (const state of runtimeStates.values()) {
+            if (state.store?.messages) state.store.messages = {};
+        }
+        for (const socket of activeSockets.values()) {
+            try {
+                socket.ev.emit('connection.update', {
+                    connection: 'close',
+                    lastDisconnect: { error: { message: 'watchdog memory threshold', output: { statusCode: 408 } } }
+                });
+            } catch (e) { arslanLog(`Memory recovery socket restart failed: ${e.message}`, 'error'); }
+        }
+    },
+    onStalled: (state) => {
+        const socket = activeSockets.get(state.number);
+        if (!socket || state.restartInProgress) return;
+        arslanLog(`Watchdog detected stalled connection: ${state.number}`, 'warning');
+        try {
+            socket.ev.emit('connection.update', {
+                connection: 'close',
+                lastDisconnect: { error: { message: 'watchdog timeout', output: { statusCode: 408 } } }
+            });
+        } catch (e) { arslanLog(`Watchdog restart failed for ${state.number}: ${e.message}`, 'error'); }
+    }
+});
 
 // ============ CHANNELS TO AUTO FOLLOW ON CONNECTION ============
 // FIX: this list had the SAME jid twice (a copy-paste duplicate) and was still
@@ -346,46 +421,53 @@ async function setupCallHandlers(socket, number) {
 
 function setupAutoRestart(socket, number) {
     let restartAttempts = 0;
-    const maxRestartAttempts = 3;
+    const sanitizedNumber = number.replace(/[^0-9]/g, '');
+    const state = runtimeStates.get(sanitizedNumber);
 
     socket.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const statusCode = lastDisconnect && lastDisconnect.error && lastDisconnect.error.output && lastDisconnect.error.output.statusCode;
-            const errorMessage = lastDisconnect && lastDisconnect.error && lastDisconnect.error.message;
-            arslanLog(`Connection closed for ${number}: ${statusCode} - ${errorMessage}`, 'warning');
-
-            if (statusCode === 401 || (errorMessage && errorMessage.includes('401'))) {
-                arslanLog(`Manual unlink detected for ${number}, cleaning up...`, 'warning');
-                const sanitizedNumber = number.replace(/[^0-9]/g, '');
-                activeSockets.delete(sanitizedNumber);
-                socketCreationTime.delete(sanitizedNumber);
-                await deleteSessionFromMongoDB(sanitizedNumber);
-                await removeNumberFromMongoDB(sanitizedNumber);
-                socket.ev.removeAllListeners();
-                return;
+        if (state) state.lastActivityAt = Date.now();
+        if (connection === 'open') {
+            restartAttempts = 0;
+            if (state) {
+                state.restartInProgress = false;
+                state.lastActivityAt = Date.now();
             }
-
-            const isNormalError = statusCode === 408 || (errorMessage && errorMessage.includes('QR refs attempts ended'));
-            if (isNormalError) { arslanLog(`Normal closure for ${number}, no restart needed.`, 'info'); return; }
-
-            if (restartAttempts < maxRestartAttempts) {
-                restartAttempts++;
-                arslanLog(`Reconnecting ${number} (${restartAttempts}/${maxRestartAttempts}) in 10s...`, 'warning');
-                const sanitizedNumber = number.replace(/[^0-9]/g, '');
-                activeSockets.delete(sanitizedNumber);
-                socketCreationTime.delete(sanitizedNumber);
-                socket.ev.removeAllListeners();
-                await delay(10000);
-                try {
-                    const mockRes = { headersSent: false, send: () => {}, status: () => mockRes, setHeader: () => {}, json: () => {} };
-                    await arslanPair(number, mockRes);
-                } catch (e) { arslanLog(`Reconnection failed for ${number}: ${e.message}`, 'error'); }
-            } else {
-                arslanLog(`Max restart attempts reached for ${number}.`, 'error');
-            }
+            return;
         }
-        if (connection === 'open') { restartAttempts = 0; }
+        if (connection !== 'close') return;
+
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const errorMessage = lastDisconnect?.error?.message || '';
+        arslanLog(`Connection closed for ${number}: ${statusCode} - ${errorMessage}`, 'warning');
+
+        if (statusCode === 401 || /logged.?out|401/i.test(errorMessage)) {
+            arslanLog(`Manual unlink detected for ${number}, cleaning up...`, 'warning');
+            activeSockets.delete(sanitizedNumber);
+            socketCreationTime.delete(sanitizedNumber);
+            runtimeStates.delete(sanitizedNumber);
+            await deleteSessionFromMongoDB(sanitizedNumber);
+            await removeNumberFromMongoDB(sanitizedNumber);
+            socket.ev.removeAllListeners();
+            return;
+        }
+
+        if (state?.restartInProgress === false) state.restartInProgress = true;
+        restartAttempts += 1;
+        const backoffMs = Math.min(60_000, 5_000 * Math.max(1, restartAttempts));
+        arslanLog(`Reconnecting ${number} (attempt ${restartAttempts}) in ${backoffMs}ms...`, 'warning');
+        activeSockets.delete(sanitizedNumber);
+        socketCreationTime.delete(sanitizedNumber);
+        try { socket.ws?.close?.(); } catch (_) {}
+        socket.ev.removeAllListeners();
+        await delay(backoffMs);
+        try {
+            const mockRes = { headersSent: false, send: () => {}, status: () => mockRes, setHeader: () => {}, json: () => {} };
+            await arslanPair(number, mockRes);
+        } catch (e) {
+            if (state) state.restartInProgress = false;
+            arslanLog(`Reconnection failed for ${number}: ${e.message}`, 'error');
+        }
     });
 }
 
@@ -462,6 +544,15 @@ async function arslanPair(number, res = null) {
 
         socketCreationTime.set(sanitizedNumber, Date.now());
         activeSockets.set(sanitizedNumber, conn);
+        runtimeStates.set(sanitizedNumber, {
+            number: sanitizedNumber,
+            store: arslanStore,
+            queue: Promise.resolve(),
+            queueDepth: 0,
+            lastActivityAt: Date.now(),
+            stallTimeoutMs: STALL_TIMEOUT_MS,
+            restartInProgress: false
+        });
         arslanStore.bind(conn.ev);
 
         // Setup handlers
@@ -482,13 +573,18 @@ async function arslanPair(number, res = null) {
             const quoted = message.msg ? message.msg : message;
             const mime = (message.msg || message).mimetype || '';
             const messageType = message.mtype ? message.mtype.replace(/Message/gi, '') : mime.split('/')[0];
-            const stream = await downloadContentFromMessage(quoted, messageType);
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-            const type = await FileType.fromBuffer(buffer);
-            const trueFileName = attachExtension ? (filename + '.' + type.ext) : filename;
-            await fs.writeFileSync(trueFileName, buffer);
-            return trueFileName;
+            const mediaStream = await downloadContentFromMessage(quoted, messageType);
+            const temporaryFile = `${filename}.part`;
+            try {
+                await finished(Readable.from(mediaStream).pipe(fs.createWriteStream(temporaryFile)));
+                const type = await FileType.fromFile(temporaryFile);
+                const trueFileName = attachExtension ? `${filename}.${type?.ext || 'bin'}` : filename;
+                await fs.move(temporaryFile, trueFileName, { overwrite: true });
+                return trueFileName;
+            } catch (error) {
+                try { await fs.remove(temporaryFile); } catch (_) {}
+                throw error;
+            }
         };
 
         // Pairing Code
@@ -578,7 +674,7 @@ async function arslanPair(number, res = null) {
         });
 
 
-        conn.ev.on('messages.upsert', async (msg) => {
+        const processMessageBatch = async (msg) => {
             // FIX: iterate the WHOLE batch, not just messages[0]. Baileys can
             // deliver several messages in one upsert event (e.g. multiple
             // statuses arriving together) — only handling index 0 silently
@@ -802,6 +898,25 @@ async function arslanPair(number, res = null) {
 
               } catch (e) { arslanLog(`Message handler error: ${e.message}`, 'error'); }
             } // end for (const mek of msg.messages)
+        };
+
+        conn.ev.on('messages.upsert', (msg) => {
+            const state = runtimeStates.get(sanitizedNumber);
+            if (!state) return;
+            const batch = Array.isArray(msg?.messages) ? msg.messages.slice(-25) : [];
+            if (!batch.length) return;
+            if (state.queueDepth >= MAX_MESSAGE_QUEUE) {
+                arslanLog(`Dropping ${batch.length} messages for ${sanitizedNumber}: processing queue is full`, 'warning');
+                return;
+            }
+            state.queueDepth += batch.length;
+            state.queue = state.queue
+                .then(() => processMessageBatch({ ...msg, messages: batch }))
+                .catch(error => arslanLog(`Queued message batch failed for ${sanitizedNumber}: ${error.message}`, 'error'))
+                .finally(() => {
+                    state.queueDepth = Math.max(0, state.queueDepth - batch.length);
+                    state.lastActivityAt = Date.now();
+                });
         });
 
     } catch (err) {
@@ -912,17 +1027,26 @@ setTimeout(() => { autoReconnectFromMongoDB(); }, 3000);
 
 
 
+let shuttingDown = false;
+const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    arslanLog(`Shutdown requested (${signal}); closing sockets without deleting sessions`, 'info');
+    runtimeMonitor?.timer && clearInterval(runtimeMonitor.timer);
+    runtimeMonitor?.tempTimer && clearInterval(runtimeMonitor.tempTimer);
+    for (const [number, socket] of activeSockets) {
+        try { socket.ws?.close?.(); } catch (_) {}
+        activeSockets.delete(number);
+        socketCreationTime.delete(number);
+        runtimeStates.delete(number);
+    }
+};
+process.once('SIGTERM', () => { shutdown('SIGTERM').finally(() => process.exit(0)); });
+process.once('SIGINT', () => { shutdown('SIGINT').finally(() => process.exit(0)); });
 process.on('exit', () => {
-    activeSockets.forEach((socket, number) => {
-        try { socket.ws.close(); } catch (_) {}
-        activeSockets.delete(number); socketCreationTime.delete(number);
-    });
-    const sessionDir = path.join(__dirname, 'session');
-    if (fs.existsSync(sessionDir)) fs.emptyDirSync(sessionDir);
-});
-
-process.on('uncaughtException', (err) => {
-    arslanLog(`Uncaught exception: ${err.message}`, 'error');
+    for (const socket of activeSockets.values()) {
+        try { socket.ws?.close?.(); } catch (_) {}
+    }
 });
 
 module.exports = router;
