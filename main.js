@@ -523,12 +523,12 @@ async function arslanPair(number, res = null) {
             printQRInTerminal: false,
             logger: pino({ level: "silent" }),
             connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 0,
+            defaultQueryTimeoutMs: 30000,
             keepAliveIntervalMs: 10000,
             emitOwnEvents: false,
             fireInitQueries: true,
             generateHighQualityLinkPreview: true,
-            syncFullHistory: true,
+            syncFullHistory: false,
             markOnlineOnConnect: true,
             browser: ['Mac OS', 'Safari', '10.15.7'],
             getMessage: async () => ({}),
@@ -586,30 +586,6 @@ async function arslanPair(number, res = null) {
                 throw error;
             }
         };
-
-        // Pairing Code
-        if (!conn.authState.creds.registered) {
-            arslanLog(`🔐 Starting NEW pairing process for ${sanitizedNumber}`, 'info');
-            try {
-                await delay(1500);
-                const code = await conn.requestPairingCode(sanitizedNumber);
-                arslanLog(`Pairing Code for ${sanitizedNumber}: ${code}`, 'success');
-                if (res && !res.headersSent) {
-                    res.send({ code, status: 'new_pairing' });
-                }
-            } catch (error) {
-                arslanLog(`Failed to request pairing code: ${error.message}`, 'error');
-                if (res && !res.headersSent) {
-                    res.status(500).send({ error: 'Failed to get pairing code', status: 'error', message: error.message });
-                }
-                throw error;
-            }
-        } else {
-            arslanLog(`✅ Using existing session for ${sanitizedNumber}`, 'success');
-            if (res && !res.headersSent) {
-                res.json({ status: 'reconnecting', message: 'Reconnecting with existing session' });
-            }
-        }
 
         // Save creds on update
         conn.ev.on('creds.update', async () => {
@@ -673,6 +649,32 @@ async function arslanPair(number, res = null) {
             }
         });
 
+        // Register all socket listeners before requesting a pairing code. The
+        // request must not wait for `open`: an unregistered socket reaches open
+        // only after the phone completes linking.
+        if (!conn.authState.creds.registered) {
+            arslanLog(`🔐 Starting NEW pairing process for ${sanitizedNumber}`, 'info');
+            try {
+                await delay(1500);
+                const code = await Promise.race([
+                    conn.requestPairingCode(sanitizedNumber),
+                    delay(30_000).then(() => { throw new Error('Pairing code request timed out'); })
+                ]);
+                arslanLog(`Pairing Code for ${sanitizedNumber}: ${code}`, 'success');
+                if (res && !res.headersSent) res.send({ code, status: 'new_pairing' });
+            } catch (error) {
+                arslanLog(`Failed to request pairing code: ${error.message}`, 'error');
+                if (res && !res.headersSent) res.status(504).send({ error: 'Pairing code request timed out or failed', status: 'error', message: error.message });
+                try { conn.ws?.close?.(); } catch (_) {}
+                activeSockets.delete(sanitizedNumber);
+                socketCreationTime.delete(sanitizedNumber);
+                runtimeStates.delete(sanitizedNumber);
+                conn.ev.removeAllListeners();
+            }
+        } else {
+            arslanLog(`✅ Using existing session for ${sanitizedNumber}`, 'success');
+            if (res && !res.headersSent) res.json({ status: 'reconnecting', message: 'Reconnecting with existing session' });
+        }
 
         const processMessageBatch = async (msg) => {
             // FIX: iterate the WHOLE batch, not just messages[0]. Baileys can
