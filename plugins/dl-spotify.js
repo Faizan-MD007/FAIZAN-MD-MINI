@@ -4,81 +4,109 @@ const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
 const stream = require('stream');
+const { sendBtns } = require('../lib/buttons');
+const config = require('../config');
 const pipeline = promisify(stream.pipeline);
 
+const pending = new Map();
+const PENDING_TTL = 10 * 60 * 1000;
+
+function remember(item) {
+    const id = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    pending.set(id, { ...item, expires: Date.now() + PENDING_TTL });
+    setTimeout(() => pending.delete(id), PENDING_TTL).unref?.();
+    return id;
+}
+
+function getSource(item, kind) {
+    if (kind === 'audio') return item.audioUrl || item.downloadUrl;
+    return item.videoUrl || item.video_download || item.video_download_url || '';
+}
+
+async function sendSpotifyMedia(conn, from, mek, item, kind, variant) {
+    const source = getSource(item, kind);
+    if (!source) {
+        return conn.sendMessage(from, {
+            text: kind === 'video'
+                ? '❌ This Spotify API returned no video source for this track.'
+                : '❌ Audio source is unavailable.'
+        }, { quoted: mek });
+    }
+
+    if (kind === 'audio') {
+        return conn.sendMessage(from, {
+            audio: { url: source },
+            mimetype: 'audio/mpeg',
+            ptt: variant === 'audio2',
+            fileName: `${item.title || 'spotify'}.mp3`,
+            caption: `*🎵 SPOTIFY AUDIO*\n\n${item.title || 'Track'}${item.artist ? ` — ${item.artist}` : ''}\n\n${config.BOT_FOOTER || ''}`
+        }, { quoted: mek });
+    }
+
+    return conn.sendMessage(from, {
+        video: { url: source },
+        mimetype: 'video/mp4',
+        caption: `*🎥 SPOTIFY VIDEO ${variant === 'video2' ? '2' : '1'}*\n\n${item.title || 'Track'}${item.artist ? ` — ${item.artist}` : ''}\n\n${config.BOT_FOOTER || ''}`
+    }, { quoted: mek });
+}
+
 cmd({
-    pattern: "spotify",
-    alias: ["splay", "spot"],
-    react: "🎵",
-    desc: "Direct Spotify Song Downloader",
-    category: "downloader",
+    pattern: 'spotify',
+    alias: ['splay', 'spot'],
+    react: '🎵',
+    desc: 'Direct Spotify Song Downloader',
+    category: 'downloader',
     use: '.spotify <song name>',
     filename: __filename
-}, async (conn, mek, m, { from, reply, q }) => {
+}, async (conn, mek, m, { from, reply, q, prefix }) => {
     try {
-        if (!q) return reply("❌ Please provide a song name.\nExample: .spotify pasoori");
+        if (!q) return reply('❌ Please provide a song name.\nExample: .spotify pasoori');
 
-        // Step 1: Search for best match
         const searchUrl = `https://jerrycoder.oggyapi.workers.dev/spotify?search=${encodeURIComponent(q)}`;
         const searchRes = await axios.get(searchUrl, { timeout: 20000 });
-
-        if (!searchRes.data || !searchRes.data.tracks || searchRes.data.tracks.length === 0) {
-            return reply("❌ No song found!");
-        }
+        if (!searchRes.data?.tracks?.length) return reply('❌ No song found!');
 
         const bestSong = searchRes.data.tracks[0];
-
-        // Step 2: Get download link
         const dlUrl = `https://jerrycoder.oggyapi.workers.dev/dspotify?url=${encodeURIComponent(bestSong.spotifyUrl)}`;
         const dlRes = await axios.get(dlUrl, { timeout: 20000 });
-
-        if (!dlRes.data || !dlRes.data.status || !dlRes.data.download_link) {
-            return reply("❌ Failed to fetch download link");
-        }
-
         const dlData = dlRes.data;
-        const audioUrl = dlData.download_link;
-        const title = dlData.title || bestSong.trackName;
-        const artist = dlData.artist || bestSong.artist;
-        const thumbnail = dlData.thumbnail || bestSong.thumbnail;
+        if (!dlData?.status || !dlData.download_link) return reply('❌ Failed to fetch download link');
 
-        // Step 3: Download audio to temp file
-        const tempDir = path.join(__dirname, 'temp');
-        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+        const item = {
+            title: dlData.title || bestSong.trackName,
+            artist: dlData.artist || bestSong.artist,
+            thumbnail: dlData.thumbnail || bestSong.thumbnail,
+            audioUrl: dlData.download_link,
+            videoUrl: dlData.video_link || dlData.video_url || dlData.video_download || ''
+        };
+        const key = remember(item);
 
-        const tempFile = path.join(tempDir, `spotify_${Date.now()}.mp3`);
-        const audioResponse = await axios({
-            method: 'GET',
-            url: audioUrl,
-            responseType: 'stream',
-            timeout: 120000,
-        });
-
-        await pipeline(audioResponse.data, fs.createWriteStream(tempFile));
-        const audioBuffer = fs.readFileSync(tempFile);
-
-        // Step 4: Send audio with metadata
-        await conn.sendMessage(from, {
-            audio: audioBuffer,
-            mimetype: 'audio/mpeg',
-            fileName: `${title.replace(/[^\w\s]/gi, '')}.mp3`,
-            contextInfo: {
-                externalAdReply: {
-                    title: title.substring(0, 70),
-                    body: artist.substring(0, 70),
-                    thumbnailUrl: thumbnail,
-                    sourceUrl: bestSong.spotifyUrl,
-                    mediaType: 1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: mek });
-
-        // Cleanup
-        fs.unlinkSync(tempFile);
-
+        await sendBtns(conn, from, {
+            title: '🎵 SPOTIFY DOWNLOADER',
+            text: `*${item.title || 'Spotify Track'}*\n\n🎹 SELECT AUDIO OR VIDEO FORMAT\n\n${item.artist || ''}`,
+            footer: config.BOT_FOOTER,
+            ...(item.thumbnail ? { image: { url: item.thumbnail } } : {}),
+            buttons: [
+                { display_text: '🎵 AUDIO 1', id: `${prefix}spotifygrab ${key} audio1` },
+                { display_text: '🎵 AUDIO 2', id: `${prefix}spotifygrab ${key} audio2` },
+                { display_text: '🎥 VIDEO 1', id: `${prefix}spotifygrab ${key} video1` },
+                { display_text: '🎥 VIDEO 2', id: `${prefix}spotifygrab ${key} video2` }
+            ]
+        }, mek);
     } catch (error) {
         console.error('Spotify Error:', error);
-        reply("❌ Something went wrong. Please try again later.");
+        reply('❌ Something went wrong. Please try again later.');
     }
+});
+
+cmd({
+    pattern: 'spotifygrab',
+    dontAddCommandList: true,
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    const item = pending.get(args[0]);
+    const variant = args[1] || 'audio1';
+    if (!item || item.expires < Date.now()) return reply('❌ This Spotify selection expired. Please search again.');
+    pending.delete(args[0]);
+    return sendSpotifyMedia(conn, from, mek, item, variant.startsWith('video') ? 'video' : 'audio', variant);
 });

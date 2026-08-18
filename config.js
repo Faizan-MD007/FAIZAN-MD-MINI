@@ -126,7 +126,7 @@ module.exports = {
     DESCRIPTION: process.env.DESCRIPTION || '> *𝐏σωєяє∂ 𝐁у 𝐅αɪᴢαɴ-𝐌ᴅ⎯꯭̽🩷*',
 
     /** WhatsApp channel link for updates */
-    CHANNEL_LINK: process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbBdQyRBPzjUMvx8Fb2g',
+    CHANNEL_LINK: process.env.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d',
 
     // ═══════════════════════════════════════════════════════════════════════
     //  📡 EXTERNAL API INTEGRATIONS (optional)
