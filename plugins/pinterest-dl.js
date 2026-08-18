@@ -119,8 +119,8 @@ async (conn, mek, m, { from, q, reply, prefix }) => {
                 title: '📌 PINTEREST',
                 text: infoText,
                 buttons: [
-                    { display_text: '🎬 VIDEO', id: `${prefix}pingrab ${q} video` },
-                    { display_text: '🎵 AUDIO', id: `${prefix}pingrab ${q} audio` }
+                    { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}pingrab ${q} video` },
+                    { display_text: '🎵 𝐀υ∂ιο', id: `${prefix}pingrab ${q} audio` }
                 ]
             }, mek);
         } catch (e) {

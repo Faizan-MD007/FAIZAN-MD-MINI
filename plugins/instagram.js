@@ -83,9 +83,9 @@ async (conn, mek, m, { from, q, args, reply, prefix }) => {
                 title: '📸 INSTAGRAM',
                 text: infoText,
                 buttons: [
-                    { display_text: '🎬 VIDEO', id: `${prefix}igrab ${url} video` },
-                    { display_text: '🎵 AUDIO', id: `${prefix}igrab ${url} audio` },
-                    { display_text: '📋 COPY CAPTION', copy_code: caption }
+                    { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}igrab ${url} video` },
+                    { display_text: '🎵 𝐀υ∂ιο', id: `${prefix}igrab ${url} audio` },
+                    { display_text: '📋 𝐂σρу 𝐂αρтισɴ', copy_code: caption }
                 ]
             }, mek);
         } catch (e) {

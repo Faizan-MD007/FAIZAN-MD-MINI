@@ -87,10 +87,10 @@ cmd({
             footer: config.BOT_FOOTER,
             ...(item.thumbnail ? { image: { url: item.thumbnail } } : {}),
             buttons: [
-                { display_text: '🎵 AUDIO 1', id: `${prefix}spotifygrab ${key} audio1` },
-                { display_text: '🎵 AUDIO 2', id: `${prefix}spotifygrab ${key} audio2` },
-                { display_text: '🎥 VIDEO 1', id: `${prefix}spotifygrab ${key} video1` },
-                { display_text: '🎥 VIDEO 2', id: `${prefix}spotifygrab ${key} video2` }
+                { display_text: '🎵 𝐀υ∂ιο 1', id: `${prefix}spotifygrab ${key} audio1` },
+                { display_text: '🎵 𝐀υ∂ιο 2', id: `${prefix}spotifygrab ${key} audio2` },
+                { display_text: '🎥 𝐕ι∂єσ 1', id: `${prefix}spotifygrab ${key} video1` },
+                { display_text: '🎥 𝐕ι∂єσ 2', id: `${prefix}spotifygrab ${key} video2` }
             ]
         }, mek);
     } catch (error) {

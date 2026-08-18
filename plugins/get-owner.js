@@ -42,11 +42,11 @@ END:VCARD`;
         // with the owner; NUMBER copies the raw number to the clipboard.
         try {
             await sendBtns(conn, from, {
-                title: '👑 OWNER',
+                title: '👑 𝐎ωɴєя',
                 text: caption,
                 buttons: [
-                    { display_text: '💬 DIRECT CHAT', url: `https://wa.me/${waNumber}` },
-                    { display_text: '📋 NUMBER', copy_code: ownerNumber }
+                    { display_text: '💬 𝐃ιяєcт 𝐂нαт', url: `https://wa.me/${waNumber}` },
+                    { display_text: '📋 𝐍υмвєя', copy_code: ownerNumber }
                 ]
             }, mek);
         } catch (e) {

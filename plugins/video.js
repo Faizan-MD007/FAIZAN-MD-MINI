@@ -254,8 +254,8 @@ ${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
 `;
 
         const buttons = [
-            { display_text: "🎥 HD", id: `${prefix}vidgrab ${videoUrl} hd` },
-            { display_text: "📺 SD", id: `${prefix}vidgrab ${videoUrl} sd` }
+            { display_text: "🎥 𝐇𝐃", id: `${prefix}vidgrab ${videoUrl} hd` },
+            { display_text: "📺 𝐒𝐃", id: `${prefix}vidgrab ${videoUrl} sd` }
         ];
 
         try {

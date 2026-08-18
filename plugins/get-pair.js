@@ -145,7 +145,7 @@ cmd({
                 text: `📱 *Number:* +${phone}\n*│❀ 🔑 Code:* \`${result.code}\``,
                 footer: '✅ Successfully Generated',
                 buttons: [
-                    { display_text: '📋 COPY CODE', copy_code: result.code }
+                    { display_text: '📋 𝐂σρу', copy_code: result.code }
                 ]
             }, mek);
         } catch (e) {

@@ -27,7 +27,7 @@ cmd({
                 title: '🆔 JID',
                 text: `${label}\n\`\`\`${targetJid}\`\`\``,
                 buttons: [
-                    { display_text: '📋 COPY JID', copy_code: targetJid }
+                    { display_text: '📋 𝐂σρу 𝐉ι∂', copy_code: targetJid }
                 ]
             }, mek);
         } catch (e) {

@@ -157,9 +157,9 @@ ${config.BOT_NAME || 'FAIZAN-MD'} DOWNLOADER
         // FIX: HD and SD both pointed at the same `downvideo <url>` command, so the
         // two buttons did the identical thing. Quality is now passed through.
         const buttons = [
-            { display_text: "🎵 AUDIO", id: `${prefix}downaudio ${videoInfo.url}` },
-            { display_text: "🎥 HD",    id: `${prefix}downvideo ${videoInfo.url} hd` },
-            { display_text: "📺 SD",    id: `${prefix}downvideo ${videoInfo.url} sd` }
+            { display_text: "🎵 𝐀υ∂ιο", id: `${prefix}downaudio ${videoInfo.url}` },
+            { display_text: "🎥 𝐇𝐃",    id: `${prefix}downvideo ${videoInfo.url} hd` },
+            { display_text: "📺 𝐒𝐃",    id: `${prefix}downvideo ${videoInfo.url} sd` }
         ];
 
         // Buttons go out through gifted-btns (see lib/buttons.js). The previous raw

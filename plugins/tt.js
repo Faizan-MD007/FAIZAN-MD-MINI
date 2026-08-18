@@ -73,9 +73,9 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
                 text: infoText,
                 ...(result.cover ? { image: { url: result.cover } } : {}),
                 buttons: [
-                    { display_text: '🎬 VIDEO', id: `${prefix}ttgrab ${url} video` },
-                    { display_text: '🎵 AUDIO', id: `${prefix}ttgrab ${url} audio` },
-                    { display_text: '📋 COPY CAPTION', copy_code: caption }
+                    { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}ttgrab ${url} video` },
+                    { display_text: '🎵 𝐀υ∂ιο', id: `${prefix}ttgrab ${url} audio` },
+                    { display_text: '📋 𝐂σρу 𝐂αρтισɴ', copy_code: caption }
                 ]
             }, mek);
         } catch (e) {

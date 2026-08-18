@@ -37,8 +37,8 @@ ${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
 `;
 
     const buttons = [];
-    if (hd) buttons.push({ display_text: "🎥 HD", id: `${prefix}fb-dl ${hd}` });
-    if (sd) buttons.push({ display_text: "📺 SD", id: `${prefix}fb-dl ${sd}` });
+    if (hd) buttons.push({ display_text: "🎥 𝐇𝐃", id: `${prefix}fb-dl ${hd}` });
+    if (sd) buttons.push({ display_text: "📺 𝐒𝐃", id: `${prefix}fb-dl ${sd}` });
 
     // Buttons go out through gifted-btns (see lib/buttons.js) — the old raw
     // relayMessage(interactiveMessage) rendered as an empty message on the phone.

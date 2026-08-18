@@ -157,10 +157,10 @@ async (conn, mek, m, { from, sender, reply, prefix }) => {
                 text: menuText,
                 image: { url: menuImageUrl },
                 buttons: [
-                    { display_text: '🏓 PING', id: `${prefix}ping` },
-                    { display_text: '👑 OWNER', id: `${prefix}owner` },
-                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` },
-                    { display_text: '📢 CHANNEL', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
+                    { display_text: '🏓 𝐏ιɴɢ', id: `${prefix}ping` },
+                    { display_text: '👑 𝐎ωɴєя', id: `${prefix}owner` },
+                    { display_text: '⏱️ 𝐔ρтιмє', id: `${prefix}uptime` },
+                    { display_text: '📢 𝐂нαɴɴєℓ', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
                 ]
             }, mek);
         } catch (e) {

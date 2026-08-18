@@ -52,7 +52,7 @@ cmd({
                 text: caption,
                 image: { url: ownerInfo.photo },
                 buttons: [
-                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` }
+                    { display_text: '⏱️ 𝐔ρтιмє', id: `${prefix}uptime` }
                 ]
             }, mek);
         } catch (e) {

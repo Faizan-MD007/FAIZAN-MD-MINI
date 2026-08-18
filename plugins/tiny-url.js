@@ -28,7 +28,7 @@ async (conn, mek, m, { from, reply, args }) => {
                 title: '🛡️ SHORT URL',
                 text: `*🛡️ YOUR SHORTENED URL*\n\n${shortenedUrl}`,
                 buttons: [
-                    { display_text: '📋 COPY URL', copy_code: shortenedUrl }
+                    { display_text: '📋 𝐂σρу 𝐔яℓ', copy_code: shortenedUrl }
                 ]
             }, mek);
         } catch (e) {

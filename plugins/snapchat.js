@@ -102,9 +102,9 @@ async (conn, mek, m, { from, q, reply, prefix }) => {
                 title: '👻 SNAPCHAT',
                 text: infoText,
                 buttons: [
-                    { display_text: '🎬 VIDEO', id: `${prefix}snapgrab ${q} video` },
-                    { display_text: '🎵 AUDIO', id: `${prefix}snapgrab ${q} audio` },
-                    { display_text: '📋 COPY CAPTION', copy_code: caption }
+                    { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}snapgrab ${q} video` },
+                    { display_text: '🎵 𝐀υ∂ιο', id: `${prefix}snapgrab ${q} audio` },
+                    { display_text: '📋 𝐂σρу 𝐂αρтισɴ', copy_code: caption }
                 ]
             }, mek);
         } catch (e) {

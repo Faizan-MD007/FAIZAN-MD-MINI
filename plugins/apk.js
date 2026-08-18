@@ -42,7 +42,7 @@ cmd({
         text: caption,
         image: { url: app.icon },
         buttons: [
-          { display_text: '📥 DOWNLOADING', id: `${prefix}apkgrab ${downloadUrl}|${app.name.toUpperCase()}` }
+          { display_text: '📥 𝐃σωɴℓσα∂ιɴɢ', id: `${prefix}apkgrab ${downloadUrl}|${app.name.toUpperCase()}` }
         ]
       }, mek);
     } catch (e) {

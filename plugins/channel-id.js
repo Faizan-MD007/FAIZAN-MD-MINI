@@ -91,7 +91,7 @@ cmd({
         text: infoText,
         ...(metadata.preview ? { image: { url: `https://pps.whatsapp.net${metadata.preview}` } } : {}),
         buttons: [
-          { display_text: '📋 COPY JID', copy_code: metadata.id }
+          { display_text: '📋 𝐂σρу 𝐉ι∂', copy_code: metadata.id }
         ]
       }, m);
     } catch (e) {

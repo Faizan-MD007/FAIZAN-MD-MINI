@@ -131,9 +131,9 @@ async (conn, mek, m, { from, reply, args, prefix }) => {
         text: infoText,
         ...(result.thumbnail ? { image: { url: result.thumbnail } } : {}),
         buttons: [
-          { display_text: '🚫 WITHOUT MARK', id: `${prefix}tt2grab ${url} nomark` },
-          { display_text: '💧 MARK', id: `${prefix}tt2grab ${url} mark` },
-          { display_text: '🎵 AUDIO', id: `${prefix}tt2grab ${url} audio` }
+          { display_text: '🚫 𝐖ιтнσυт 𝐌αяк', id: `${prefix}tt2grab ${url} nomark` },
+          { display_text: '💧 𝐌αяк', id: `${prefix}tt2grab ${url} mark` },
+          { display_text: '🎵 𝐀υ∂ιο', id: `${prefix}tt2grab ${url} audio` }
         ]
       }, mek)
     } catch (e) {

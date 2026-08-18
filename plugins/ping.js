@@ -56,10 +56,10 @@ cmd({
                 title: `🏓 ${botName}`,
                 text: message,
                 buttons: [
-                    { display_text: '💚 ALIVE', id: `${prefix}alive` },
-                    { display_text: '⏱️ UPTIME', id: `${prefix}uptime` },
-                    { display_text: '📜 MENU', id: `${prefix}menu` },
-                    { display_text: '📢 CHANNEL', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
+                    { display_text: '💚 𝐀ℓινє', id: `${prefix}alive` },
+                    { display_text: '⏱️ 𝐔ρтιмє', id: `${prefix}uptime` },
+                    { display_text: '📜 𝐌єɴυ', id: `${prefix}menu` },
+                    { display_text: '📢 𝐂нαɴɴєℓ', url: config.CHANNEL_LINK || 'https://whatsapp.com/channel/0029VbC4SGZLSmbRcz85AZ0d' }
                 ]
             }, mek);
         } catch (e) {
