@@ -165,6 +165,30 @@ async (conn, mek, m, { from, isOwner, reply, command }) => {
     }
 });
 
+// ============ 3B. SET BOT NAME (SETMYNAME) ============
+cmd({
+    pattern: "setmyname",
+    alias: ["setbotname", "botname"],
+    desc: "Set bot display name",
+    category: "owner",
+    react: "📛",
+    filename: __filename
+},
+async (conn, mek, m, { from, isOwner, args, reply }) => {
+    try {
+        if (!isOwner) return reply(faizanStyle('SETNAME', 'Owner only command', '❌'));
+        if (!args.length) return reply(faizanStyle('SETNAME', 'Please provide a name', '❌'));
+
+        const newName = args.join(' ');
+        await conn.updateProfileName(newName);
+        await reply(faizanStyle('SETNAME', `Bot name changed to: ${newName} ✅`, '✅'));
+
+    } catch (error) {
+        console.error('Setname error:', error);
+        await reply(faizanStyle('SETNAME', error.message || 'Failed to update', '❌'));
+    }
+});
+
 // ============ 4. SET GROUP PROFILE PICTURE (GPP) ============
 cmd({
     pattern: "gpp",

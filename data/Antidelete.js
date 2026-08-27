@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const antideleteSchema = new mongoose.Schema({
     chatId: { type: String, required: true, unique: true },
-    status: { type: Boolean, default: false }
+    status: { type: Boolean, default: true }
 });
 
 const Antidelete = mongoose.model('Antidelete', antideleteSchema);

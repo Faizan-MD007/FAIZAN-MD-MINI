@@ -13,7 +13,7 @@ const mongoose = require('mongoose');
  */
 const antiLinkSchema = new mongoose.Schema({
     groupId: { type: String, required: true, unique: true },
-    enabled: { type: Boolean, default: false }
+    enabled: { type: Boolean, default: true }
 });
 const AntiLink = mongoose.models.AntiLink || mongoose.model('AntiLink', antiLinkSchema);
 

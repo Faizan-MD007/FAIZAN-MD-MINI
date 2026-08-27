@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
  */
 const antiViewOnceSchema = new mongoose.Schema({
     chatId: { type: String, required: true, unique: true },
-    status: { type: Boolean, default: false }
+    status: { type: Boolean, default: true }
 });
 
 const AntiViewOnce = mongoose.models.AntiViewOnce || mongoose.model('AntiViewOnce', antiViewOnceSchema);

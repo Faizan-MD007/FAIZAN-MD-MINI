@@ -68,7 +68,7 @@ module.exports = {
     //  😄 AUTO REACT
     // ═══════════════════════════════════════════════════════════════════════
 
-    AUTO_REACT: process.env.AUTO_REACT || 'false',
+    AUTO_REACT: process.env.AUTO_REACT || 'true',
     AUTO_REACT_EMOJI: ['👀', '🫀', '🧡', '❤️‍🩹', '❣️', '💖', '💝', '🦋', '😘', '🤍', '🥰', '🌝', '💨', '🌟', '✨', '🫦', '💐', '🌺', '🪷', '🍄', '🍁', '🪴', '🥀', '🌈', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🌑', '🪽', '🍒', '🍇', '🥖', '🥢', '🛟', '🎀', '🎗️', '🎈', '🎱', '🪀', '🪄', '🪡', '🧷', '🧣', '💍', '🧸', '🔗', '🖇️', '🗞️', '📅', '🔮', '♏', '🇰🇼', '🏳️'],
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -77,7 +77,11 @@ module.exports = {
 
     /** Groups only — admin-enabled via .antilink on/off. Warns + deletes on
      *  first offense, removes the sender from the group on second offense. */
-    ANTI_LINK: process.env.ANTI_LINK || 'false',
+    ANTI_LINK: process.env.ANTI_LINK || 'true',
+    ANTI_DELETE: process.env.ANTI_DELETE || 'true',
+    ANTI_BAD: process.env.ANTI_BAD || 'true',
+    ANTI_VIEW_ONCE: process.env.ANTI_VIEW_ONCE || 'true',
+    ANTI_EDIT: process.env.ANTI_EDIT || 'true',
 
     // ═══════════════════════════════════════════════════════════════════════
     //  💬 PRESENCE & CHAT SETTINGS
