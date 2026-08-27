@@ -417,7 +417,7 @@ async function arslanPair(number, res = null) {
             cachedGroupMetadata: async (jid) => readGroupMetaCache(jid, { allowStale: true }),
             getMessage: async (key) => {
                 const msg = await arslanStore.loadMessage(key.remoteJid, key.id);
-                return msg && msg.message ? msg.message : { conversation: 'FAIZAN-MD' };
+                return msg && msg.message ? msg.message : undefined;
             }
         });
 
@@ -783,6 +783,7 @@ async function arslanPair(number, res = null) {
                 if (isGroup) await incrementStats(sanitizedNumber, 'groupsInteracted');
 
                 events.commands.map(async (evCmd) => {
+                    if (mek.key.fromMe && !evCmd.fromMe) return;
                     const ctx = { from, l, quoted: mek, body, isCmd, command, args, q, text, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, isCreator, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, config, myquoted, ...extraCtx };
                     if (body && evCmd.on === 'body') evCmd.function(conn, mek, m, ctx);
                     else if (mek.q && evCmd.on === 'text') evCmd.function(conn, mek, m, ctx);
