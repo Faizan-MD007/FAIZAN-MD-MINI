@@ -119,13 +119,13 @@ async (conn, mek, m, { from, isOwner, args, reply }) => {
 // ============ 3. SET BOT PROFILE PICTURE (SETPP) ============
 cmd({
     pattern: "setpp",
-    alias: ["setprofile", "profilepic", "setbotpp"],
+    alias: ["setprofile", "profilepic", "setbotpp", "setfullpp"],
     desc: "Set bot profile picture (reply to image)",
     category: "owner",
     react: "🖼️",
     filename: __filename
 },
-async (conn, mek, m, { from, isOwner, reply }) => {
+async (conn, mek, m, { from, isOwner, reply, command }) => {
     try {
         if (!isOwner) return reply(faizanStyle('SETPP', 'Owner only command', '❌'));
 
@@ -134,9 +134,30 @@ async (conn, mek, m, { from, isOwner, reply }) => {
             return reply(faizanStyle('SETPP', 'Reply to an image to set as bot DP', '❌'));
         }
 
-        await reply(faizanStyle('SETPP', 'Updating bot profile picture...', '⏳'));
-        await conn.updateProfilePicture(conn.user.id, media);
-        await reply(faizanStyle('SETPP', 'Bot profile picture updated! ✅', '✅'));
+        const isFull = command === 'setfullpp' || command === 'fullpp';
+        await reply(faizanStyle('SETPP', `Updating bot ${isFull ? 'full ' : '' }profile picture...`, '⏳'));
+        
+        if (isFull) {
+            await conn.query({
+                tag: 'iq',
+                attrs: {
+                    to: '@s.whatsapp.net',
+                    type: 'set',
+                    xmlns: 'w:profile:picture',
+                },
+                content: [
+                    {
+                        tag: 'picture',
+                        attrs: { type: 'image' },
+                        content: media,
+                    },
+                ],
+            });
+        } else {
+            await conn.updateProfilePicture(conn.user.id, media);
+        }
+        
+        await reply(faizanStyle('SETPP', `Bot ${isFull ? 'full ' : ''}profile picture updated! ✅`, '✅'));
 
     } catch (error) {
         console.error('Setpp error:', error);

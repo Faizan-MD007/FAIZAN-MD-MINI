@@ -29,6 +29,8 @@ const TOGGLES = [
     { name: 'autotyping', aliases: ['autotype', 'atyping'], label: 'AUTO TYPING', command: 'env autotyping', key: 'AUTO_TYPING' },
     { name: 'autorecording', aliases: ['autorec', 'arecording'], label: 'AUTO RECORDING', command: 'env autorecording', key: 'AUTO_RECORDING' },
     { name: 'anticall', aliases: ['acall'], label: 'ANTI CALL', command: 'env anticall', key: 'ANTI_CALL' },
+    { name: 'antibad', aliases: ['antibadword', 'antib'], label: 'ANTI BAD WORD', command: 'env antibad', key: 'ANTI_BAD' },
+    { name: 'antiedit', label: 'ANTI EDIT', command: 'env antiedit', key: 'ANTI_EDIT' },
     { name: 'welcome', label: 'WELCOME MESSAGE', command: 'env welcome', key: 'WELCOME', fallbackKey: 'WELCOME_ENABLE' },
     { name: 'goodbye', label: 'GOODBYE MESSAGE', command: 'env goodbye', key: 'GOODBYE', fallbackKey: 'GOODBYE_ENABLE' }
 ];

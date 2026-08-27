@@ -108,7 +108,17 @@ cmd({
 
  ${config.DESCRIPTION}`;
 
-        await conn.sendMessage(from, { text: resultMsg }, { quoted: mek });
+        try {
+            await sendBtns(conn, from, {
+                title: '🖇️ URL UPLOADER',
+                text: resultMsg,
+                buttons: [
+                    { display_text: '📋 𝐂σρу 𝐔яℓ', copy_code: mediaUrl }
+                ]
+            }, mek);
+        } catch (e) {
+            await conn.sendMessage(from, { text: resultMsg }, { quoted: mek });
+        }
         await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
     } catch (error) {

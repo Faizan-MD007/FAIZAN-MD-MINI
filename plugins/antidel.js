@@ -175,11 +175,15 @@ async (conn, mek, m, { from, args, reply, isCreator, botNumber, prefix }) => {
         const option = args[0].toLowerCase();
         
         if (option === 'on') {
+            const { setAntideleteStatus } = require('../data/Antidelete');
+            await setAntideleteStatus(from, true);
             config.ANTI_DELETE = 'true';
             await updateUserConfig(botNumber, config);
             return reply(`✅ *Anti-Delete ENABLED*\n\nAll deleted messages will be sent to ${config.ANTI_DEL_PATH === 'inbox' ? 'your inbox' : 'the same chat'}.`);
         }
         else if (option === 'off') {
+            const { setAntideleteStatus } = require('../data/Antidelete');
+            await setAntideleteStatus(from, false);
             config.ANTI_DELETE = 'false';
             await updateUserConfig(botNumber, config);
             return reply(`❌ *Anti-Delete DISABLED*`);

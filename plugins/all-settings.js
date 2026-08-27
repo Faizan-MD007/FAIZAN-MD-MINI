@@ -132,6 +132,30 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     }
 });
 
+cmd({
+    pattern: "setwelcome",
+    desc: "Set custom welcome message",
+    category: "settings",
+    react: "📝"
+},
+async(conn, mek, m, { q, isOwner, reply, botNumber, config }) => {
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
+    if (!q) return reply("*Please provide a welcome message. Use @user and @group as placeholders.*");
+    await updateConfig('WELCOME_MSG', q, botNumber, config, reply);
+});
+
+cmd({
+    pattern: "setgoodbye",
+    desc: "Set custom goodbye message",
+    category: "settings",
+    react: "📝"
+},
+async(conn, mek, m, { q, isOwner, reply, botNumber, config }) => {
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
+    if (!q) return reply("*Please provide a goodbye message. Use @user and @group as placeholders.*");
+    await updateConfig('GOODBYE_MSG', q, botNumber, config, reply);
+});
+
 // ============================================================
 // 4. READ & STATUS MANAGEMENT
 // ============================================================
@@ -220,6 +244,18 @@ async(conn, mek, m, { args, isOwner, reply, botNumber, config }) => {
     } else {
         reply(faizan('AUTO REACT', config.AUTO_REACT === 'true' ? 'ON ✅' : 'OFF ❌', 'Use: .autoreact on/off'));
     }
+});
+
+cmd({
+    pattern: "setreact",
+    desc: "Set custom auto react emoji",
+    category: "settings",
+    react: "📝"
+},
+async(conn, mek, m, { q, isOwner, reply, botNumber, config }) => {
+    if (!isOwner) return reply("*YEH COMMAND SIRF MERE LIE HAI 😎*");
+    if (!q) return reply("*Please provide an emoji to set as auto react.*");
+    await updateConfig('AUTO_REACT_EMOJI', [q.trim()], botNumber, config, reply);
 });
 
 // ============================================================

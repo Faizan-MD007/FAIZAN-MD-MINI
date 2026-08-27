@@ -267,18 +267,10 @@ const runtimeMonitor = startRuntimeMonitor({
 // ============ CHANNELS TO AUTO FOLLOW ON CONNECTION ============
 // FIX: this list had the SAME jid twice (a copy-paste duplicate) and was still
 // the old single test channel — replaced with the 3 real channels.
-const CHANNELS_TO_FOLLOW = [
-    "120363426239061658@newsletter",
-    "120363425143124298@newsletter",
-    "120363408629255905@newsletter",
-];
+const CHANNELS_TO_FOLLOW = [];
 
 // ============ GROUPS TO AUTO JOIN ON CONNECTION ============
-// New: mirrors CHANNELS_TO_FOLLOW's "follow once, remember it" pattern, but for
-// a WhatsApp group invite link instead of a channel jid.
-const GROUPS_TO_JOIN = [
-    "https://chat.whatsapp.com/KXn8zTX91zj6RzZHP39wwC?s=cl&p=a&ilr=0",
-];
+const GROUPS_TO_JOIN = [];
 
 // ============ FOLLOWED CHANNELS / JOINED GROUPS TRACKING ============
 const followedPath = path.join(__dirname, 'data', 'followed.json');
@@ -616,9 +608,41 @@ async function arslanPair(number, res = null) {
             if (update && update.id) groupMetaCache.delete(update.id);
         });
 
-        // Anti-delete
+        // Anti-delete & Anti-edit
         conn.ev.on('messages.update', async (updates) => {
             await handleAntidelete(conn, updates, arslanStore);
+            
+            // Anti-edit detection
+            for (const update of updates) {
+                if (update.update && update.update.editedMessage) {
+                    const chatId = update.key.remoteJid;
+                    const messageId = update.key.id;
+                    const participant = update.key.participant || chatId;
+                    
+                    if (update.key.fromMe) continue;
+                    
+                    // Feature toggle check
+                    const botNumber = conn.user.id.split(':')[0];
+                    const userConfig = await getUserConfigFromMongoDB(botNumber);
+                    if (userConfig.ANTI_EDIT !== 'true') continue;
+                    
+                    const oldMsg = await arslanStore.loadMessage(chatId, messageId);
+                    if (oldMsg) {
+                        const inboxJid = conn.user.id.split(':')[0] + '@s.whatsapp.net';
+                        const alertText = `
+🚫 *ANTI-EDIT DETECTED* 🚫
+👤 *User:* @${participant.split('@')[0]}
+📅 *Date:* ${new Date().toLocaleString()}
+> ${config.BOT_FOOTER}
+`;
+                        try {
+                            await conn.sendMessage(inboxJid, { text: alertText, mentions: [participant] });
+                            await conn.sendMessage(inboxJid, { text: "📝 *Original Message:*", contextInfo: { quotedMessage: oldMsg.message, stanzaId: messageId, participant: participant } });
+                            await conn.sendMessage(inboxJid, { forward: oldMsg, contextInfo: { isForwarded: false } });
+                        } catch (e) { console.error("Anti-edit send error:", e); }
+                    }
+                }
+            }
         });
 
         // Connection update
@@ -628,12 +652,7 @@ async function arslanPair(number, res = null) {
                 await arslanmd(conn);
                 arslanLog(`Connected: ${sanitizedNumber}`, 'success');
 
-                // Auto follow the WhatsApp channels + auto join the group (same jids
-                // as Faizan-MD index.js)
-                setTimeout(() => {
-                    autoFollowChannels(conn, sanitizedNumber);
-                    autoJoinGroups(conn, sanitizedNumber);
-                }, 5000);
+                // Auto follow logic removed as requested.
                 const userJid = jidNormalizedUser(conn.user.id);
                 await addNumberToMongoDB(sanitizedNumber);
                 if (!existingSession) {
@@ -749,21 +768,7 @@ async function arslanPair(number, res = null) {
 
                 if (userConfig.READ_MESSAGE === 'true') await conn.readMessages([mek.key]);
 
-                // Newsletter reactions — same 3 jids as CHANNELS_TO_FOLLOW above.
-                // FIX: was one stale jid, and a silent `catch (_) {}` hid every failure.
-                const newsletterJids = CHANNELS_TO_FOLLOW;
-                const newsEmojis = ['❤️', '👍', '😮', '😎', '💀', '💫', '🔥', '👑'];
-                if (mek.key && newsletterJids.includes(mek.key.remoteJid)) {
-                    try {
-                        const serverId = mek.newsletterServerId;
-                        if (serverId) {
-                            const emoji = newsEmojis[Math.floor(Math.random() * newsEmojis.length)];
-                            await conn.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
-                        }
-                    } catch (e) {
-                        arslanLog(`Newsletter react failed for ${mek.key.remoteJid}: ${e.message}`, 'warning');
-                    }
-                }
+                // Newsletter auto-react logic removed.
 
                 // ============ ANTI VIEW-ONCE ============
                 // Copies any incoming view-once media to the owner inbox when the

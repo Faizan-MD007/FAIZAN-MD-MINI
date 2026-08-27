@@ -29,23 +29,23 @@ cmd({
 
     if (!hd && !sd) return reply("❌ No download links found.");
 
-    const buttonText = `
-----------------------------
-. | 🎹 SELECT VIDEO QUALITY
-----------------------------
-${config.BOT_NAME || 'FAIZAN-MD'} FACEBOOK DOWNLOADER
-`;
+    const infoText = `
+*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃'} ⊱┈─̇─̣╌*
+*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
+*│❀ 🎬 𝐓𝐢𝐭𝐥𝐞:* Facebook Video
+*│❀ ⚙️ 𝐒𝐭𝐚𝐭𝐮𝐬:* Ready
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+
+> ${config.BOT_FOOTER || 'ᴘᴏᴡᴇʀє∂ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 🤍'}`;
 
     const buttons = [];
     if (hd) buttons.push({ display_text: "🎥 𝐇𝐃", id: `${prefix}fb-dl ${hd}` });
     if (sd) buttons.push({ display_text: "📺 𝐒𝐃", id: `${prefix}fb-dl ${sd}` });
 
-    // Buttons go out through gifted-btns (see lib/buttons.js) — the old raw
-    // relayMessage(interactiveMessage) rendered as an empty message on the phone.
     await sendBtns(conn, from, {
-        title: "👑 FACEBOOK DOWNLOADER 👑",
-        text: buttonText,
-        footer: config.BOT_FOOTER,
+        title: "👑 FACEBOOK DOWNLOADER",
+        text: infoText,
         ...(result.thumbnail ? { image: { url: result.thumbnail } } : {}),
         buttons
     }, mek);

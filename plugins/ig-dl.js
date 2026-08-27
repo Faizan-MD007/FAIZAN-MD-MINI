@@ -29,17 +29,28 @@ cmd({
             return reply("Failed to fetch media. Invalid link or private content.");
         }
 
-        // Send all media items
-        for (const item of response.data.data) {
-            await conn.sendMessage(from, {
-                [item.type === 'video' ? 'video' : 'image']: { url: item.url },
-                caption: `‎*_ɪɴsᴛᴀɢʀᴀᴍ ᴅᴏᴡɴʟᴏᴀᴅᴇʀ_*
+        const infoText = `
+*╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
+*│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃'} ⊱┈─̇─̣╌*
+*│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
+*│❀ 🎬 𝐓𝐢𝐭𝐥𝐞:* Instagram Media
+*│❀ ⚙️ 𝐒𝐭𝐚𝐭𝐮𝐬:* Ready
+*╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
-‎╔ஜ۩▒█ *ꜰᴀɪᴢᴀɴ X ᴍᴅ* █▒۩ஜ╗
-‎*|* 𝙿𝙾𝚆𝙴𝚁𝙴𝙳 𝙱𝚈 *ꜰᴀɪᴢᴀɴ-ᴍᴅ* 
-‎*╰━━━━━━━━━━━━━━━━━━⊷*
-‎`
-            }, { quoted: fakevCard });
+> ${config.BOT_FOOTER || 'ᴘᴏᴡᴇʀє∂ ʙʏ 𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃 🤍'}`;
+
+        for (const item of response.data.data) {
+            const buttons = [
+                { display_text: item.type === 'video' ? '🎬 𝐕ι∂єσ' : '🖼️ 𝐈мαɢє', id: `${prefix}iggrab ${item.url} ${item.type}` },
+                { display_text: '📋 𝐂σρу 𝐂αρтισɴ', copy_code: url }
+            ];
+
+            await sendBtns(conn, from, {
+                title: '📸 INSTAGRAM',
+                text: infoText,
+                image: { url: item.url },
+                buttons
+            }, mek);
         }
 
         // Success reaction
@@ -192,5 +203,27 @@ async (conn, mek, m, { from, args, q, reply }) => {
     } catch (e) {
         console.error("Error in Instagram downloader command:", e);
         reply(`An error occurred: ${e.message}`);
+    }
+});
+
+// Hidden handler for Instagram button taps
+cmd({
+    pattern: "iggrab",
+    dontAddCommandList: true,
+    filename: __filename
+}, async (conn, mek, m, { from, args, reply }) => {
+    if (!args.length) return;
+    const mediaUrl = args[0];
+    const type = args[1] || 'video';
+    
+    try {
+        await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });
+        await conn.sendMessage(from, {
+            [type === 'video' ? 'video' : 'image']: { url: mediaUrl },
+            caption: `*📸 INSTAGRAM ${type.toUpperCase()} DOWNLOADED*\n\n${config.BOT_FOOTER}`
+        }, { quoted: mek });
+        await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
+    } catch (err) {
+        reply(`❌ Download Failed: ${err.message}`);
     }
 });
