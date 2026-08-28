@@ -410,15 +410,11 @@ async function arslanPair(number, res = null) {
             syncFullHistory: false,
             markOnlineOnConnect: true,
             browser: ['Mac OS', 'Safari', '10.15.7'],
-            getMessage: async () => ({}),
             // FIX: without this, Baileys queries groupMetadata on every group send,
             // which is what produced `rate-overlimit` (429) and killed button sends.
             // Stale is deliberate here — group events below refresh it.
             cachedGroupMetadata: async (jid) => readGroupMetaCache(jid, { allowStale: true }),
-            getMessage: async (key) => {
-                const msg = await arslanStore.loadMessage(key.remoteJid, key.id);
-                return msg && msg.message ? msg.message : undefined;
-            }
+            getMessage: async () => ({}),
         });
 
         socketCreationTime.set(sanitizedNumber, Date.now());
