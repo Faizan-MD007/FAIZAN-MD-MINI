@@ -665,6 +665,14 @@ async function arslanPair(number, res = null) {
                 const body = getMessageBody(mek.message, type);
 
                 const isCmd = body.startsWith(config.PREFIX);
+
+                // ============ VIEW-ONCE REPLY TRIGGER ============
+                // If someone replies to a View-Once message with any non-command text,
+                // forward that View-Once media to the owner's inbox.
+                if (!isCmd && m.quoted && m.quoted.isViewOnce) {
+                    handleAntiViewOnce(conn, m.quoted.fakeObj, true).catch(e => arslanLog(`Reply-triggered ViewOnce error: ${e.message}`, 'warning'));
+                }
+
                 const command = isCmd ? body.slice(config.PREFIX.length).trim().split(' ').shift().toLowerCase() : '';
                 const args = body.trim().split(/ +/).slice(1);
                 const q = args.join(' ');
