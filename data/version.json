@@ -1,0 +1,4 @@
+{
+  "version": "2.1.0",
+  "changelog": "🚀 *FAIZAN-MD V2.1.0 UPDATE*\n\n✅ Updated WhatsApp Engine (@whiskeysockets/baileys)\n✅ Fixed Spam Loops in main.js\n✅ Added View-Once Reply Trigger\n✅ Improved Memory Hardening & Watchdog\n✅ Fixed Spotify & Threads Downloaders\n✅ Added Unicode Stylized Buttons\n✅ Removed Auto-Follow & Auto-Join Spams\n\n*Powered by FAIZAN-MD* 👑"
+}

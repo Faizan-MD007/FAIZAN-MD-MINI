@@ -32,7 +32,7 @@ cmd({
     }
 
     // Fetch latest version data from GitHub (correct repo)
-    const rawVersionUrl = 'https://raw.githubusercontent.com/Faizan-MD007/Faizan-MD/main/data/version.json';
+    const rawVersionUrl = 'https://raw.githubusercontent.com/Faizan-MD007/FAIZAN-MD-MINI/main/data/version.json';
     let latestVersion = 'Unknown';
     let latestChangelog = 'No changelog available.';
     try {
@@ -57,7 +57,7 @@ cmd({
     const hostName = os.hostname();
 
     // GitHub repo (correct)
-    const githubRepo = 'https://github.com/Faizan-MD007/Faizan-MD';
+    const githubRepo = 'https://github.com/Faizan-MD007/FAIZAN-MD-MINI';
 
     // Check update status
     let updateMessage = `✅ Your *FAIZAN-MD* bot is up-to-date!`;

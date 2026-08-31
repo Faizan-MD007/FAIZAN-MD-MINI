@@ -1,6 +1,6 @@
 {
   "name": "faizan-md-mini",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "FAIZAN-MD Mini WhatsApp Bot \u2014 pairing-code + MongoDB session (mini style)",
   "main": "index.js",
   "author": "FAIZAN-MD",

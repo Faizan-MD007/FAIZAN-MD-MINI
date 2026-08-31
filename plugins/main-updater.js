@@ -12,7 +12,7 @@ const path = require('path');
 // ═══════════════════════════════════════════════════
 
 const REPO_OWNER = 'Faizan-MD007';
-const REPO_NAME  = 'Faizan-MD';
+const REPO_NAME  = 'FAIZAN-MD-MINI';
 const BRANCH     = 'main';
 const ROOT_DIR   = path.join(__dirname, '..');
 const SHA_FILE   = path.join(ROOT_DIR, 'data', 'last-sha.txt');
