@@ -1,452 +1,569 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>👑 Faizan MD 👑</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>𝐅αɪᴢαɴ-𝐌ᴅ SESSION</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #1a1a2e;
+      --secondary-color: #16213e;
+      --accent-color: #0f3460;
+      --text-color: #f1f1f1;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --success-color: #4ade80;
+      --card-bg: rgba(255, 255, 255, 0.02);
+    }
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-<style>
-/* ===============================
-   ORIGINAL STRUCTURE - UPGRADED VISUALS
-   =============================== */
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      color: var(--text-color);
+      font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      backdrop-filter: blur(20px);
+    }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+    .container {
+      position: relative;
+      width: 100%;
+      max-width: 450px;
+      overflow: hidden;
+      padding: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 24px;
+      background: var(--card-bg);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
 
-:root {
-    --rgb-speed: 16s;
-    --glass-bg: rgba(0, 0, 0, 0.85);
-    --border-glow: rgba(255, 255, 255, 0.08);
-}
+    .container::before {
+      position: absolute;
+      top: 0;
+      right: 0;
+      left: 0;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    }
 
-body {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Poppins', sans-serif;
-    background: #0a0a0f;
-    color: #fff;
-    padding: 20px;
-    background-image: 
-        radial-gradient(ellipse at 20% 50%, rgba(120, 80, 255, 0.05) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 50%, rgba(255, 80, 120, 0.05) 0%, transparent 60%);
-}
+    .container::after {
+      position: absolute;
+      z-index: -1;
+      top: -1px;
+      right: -1px;
+      bottom: -1px;
+      left: -1px;
+      content: "";
+      border-radius: 25px;
+      background: var(--gradient-primary);
+      opacity: 0.1;
+      filter: blur(15px);
+    }
 
-/* Card */
-.card {
-    width: 90%;
-    max-width: 420px;
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: 28px;
-    padding: 32px 24px 28px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 
-        0 30px 80px rgba(0, 0, 0, 0.8),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
-    transition: all 0.3s;
-}
+    .header {
+      position: relative;
+      margin-bottom: 30px;
+      text-align: center;
+    }
 
-/* Rainbow Text Animation */
-@keyframes rgbText {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 400% 50%; }
-}
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      background: var(--gradient-primary);
+      box-shadow:
+        0 10px 30px rgba(102, 126, 234, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-.rgb-text {
-    background: linear-gradient(90deg, 
-        #ff4d6d, #ff8a4d, #ffd93d, #6bcb77, #4d96ff, #9b59ff, #ff4d6d
-    );
-    background-size: 400% 100%;
-    animation: rgbText var(--rgb-speed) linear infinite;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
+    .logo:hover {
+      transform: perspective(1000px) rotateY(10deg) scale(1.05);
+      box-shadow:
+        0 15px 40px rgba(102, 126, 234, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
 
-/* Titles */
-h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-bottom: 2px;
-}
+    .logo::after {
+      position: absolute;
+      inset: 1px;
+      z-index: 1;
+      content: "";
+      border-radius: 19px;
+      background: rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+    }
 
-h1:last-of-type {
-    font-size: 1.6rem;
-    margin-bottom: 4px;
-}
+    .logo img {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+    }
 
-/* Status */
-.status {
-    font-size: 0.75rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    opacity: 0.8;
-    margin: 6px 0 16px 0;
-    font-weight: 500;
-}
+    .title {
+      margin-bottom: 8px;
+      color: #f97316;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
 
-/* ===== INPUT & BUTTON ===== */
-/* EXACT SAME STRUCTURE AS ORIGINAL */
-.input-wrap {
-    background: transparent;
-    border-radius: 16px;
-    padding: 0;
-    margin-bottom: 14px;
-}
+    .subtitle {
+      margin-bottom: 25px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
 
-input {
-    width: 100%;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    outline: none;
-    padding: 16px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
-    color: #fff;
-    text-align: center;
-    font-size: 1.05rem;
-    font-family: 'Poppins', sans-serif;
-    transition: all 0.3s;
-    backdrop-filter: blur(10px);
-}
+    .social-icons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
 
-input:focus {
-    border-color: rgba(255, 100, 200, 0.4);
-    box-shadow: 0 0 30px rgba(155, 89, 255, 0.08);
-    background: rgba(255, 255, 255, 0.05);
-}
+    .social-icons a {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 18px;
+      text-decoration: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+    }
 
-input::placeholder {
-    color: #555;
-}
+    .social-icons a::before {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: currentColor;
+      opacity: 0.1;
+      transition: opacity 0.3s ease;
+    }
 
-button {
-    width: 100%;
-    border: none;
-    border-radius: 16px;
-    padding: 16px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-    background: linear-gradient(135deg, rgba(255, 77, 109, 0.15), rgba(155, 89, 255, 0.15));
-    color: #fff;
-    transition: all 0.3s;
-    border: 2px solid rgba(255, 255, 255, 0.08);
-    letter-spacing: 0.5px;
-    backdrop-filter: blur(10px);
-}
+    .social-icons a i {
+      position: relative;
+      z-index: 1;
+    }
 
-button:hover {
-    background: linear-gradient(135deg, rgba(255, 77, 109, 0.25), rgba(155, 89, 255, 0.25));
-    border-color: rgba(255, 100, 200, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(155, 89, 255, 0.15);
-}
+    .social-icons a.youtube { color: #ff0000; }
+    .social-icons a.telegram { color: #0088cc; }
+    .social-icons a.whatsapp { color: #25d366; }
+    .social-icons a.github { color: #ffffff; }
 
-button:active {
-    transform: translateY(0px);
-}
+    .social-icons a:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
 
-/* ===== RESULT BOX ===== */
-#result {
-    margin-top: 20px;
-    min-height: 60px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-}
+    .social-icons a:hover::before {
+      opacity: 0.15;
+    }
 
-.code-display {
-    padding: 14px 24px;
-    border-radius: 16px;
-    border: 2px dashed rgba(255, 255, 255, 0.08);
-    letter-spacing: 6px;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.02);
-    font-size: 1.2rem;
-    font-weight: 600;
-    transition: all 0.3s;
-    width: 100%;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-}
+    .mode-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 25px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    }
 
-.code-display:hover {
-    border-color: rgba(155, 89, 255, 0.3);
-    background: rgba(255, 255, 255, 0.04);
-}
+    .mode-option {
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 12px;
+      color: #fff;
+      background: var(--gradient-primary);
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
 
-/* Loader */
-.loader {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(255, 255, 255, 0.05);
-    border-top: 3px solid #9b59ff;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
+    .mode-option i {
+      margin-right: 8px;
+    }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
+    .input-group {
+      margin-bottom: 25px;
+    }
 
-/* Footer */
-footer {
-    margin-top: 22px;
-    font-size: 0.7rem;
-    color: #444;
-    letter-spacing: 0.5px;
-    border-top: 1px solid rgba(255, 255, 255, 0.04);
-    padding-top: 18px;
-}
+    .input-label {
+      display: block;
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      font-weight: 500;
+      text-align: left;
+    }
 
-/* ===== RGB BORDER (FOR INPUT & BUTTON) ===== */
-@keyframes rgbMove {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 300% 50%; }
-}
+    .input-field {
+      width: 100%;
+      padding: 16px;
+      outline: none;
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      color: white;
+      background: rgba(255, 255, 255, 0.05);
+      font-family: inherit;
+      font-size: 16px;
+      text-align: center;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
 
-/* Input Box with RGB Border */
-.rgb-box {
-    padding: 3px;
-    border-radius: 18px;
-    background: linear-gradient(90deg, #ff4d6d, #ff8a4d, #ffd93d, #6bcb77, #4d96ff, #9b59ff, #ff4d6d);
-    background-size: 300% 100%;
-    animation: rgbMove 4s linear infinite;
-    width: 100%;
-    max-width: 340px;
-    margin: 0 auto 16px auto;
-    transition: all 0.3s;
-    box-shadow: 0 0 30px rgba(155, 89, 255, 0.05);
-}
+    .input-field:focus {
+      border-color: rgba(102, 126, 234, 0.75);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
+    }
 
-.rgb-box input {
-    width: 100%;
-    border: none;
-    outline: none;
-    padding: 16px;
-    border-radius: 16px;
-    background: #0a0a0f;
-    color: #fff;
-    text-align: center;
-    font-size: 1.05rem;
-    font-family: 'Poppins', sans-serif;
-}
+    .input-field::placeholder {
+      color: rgba(255, 255, 255, 0.35);
+    }
 
-.rgb-box input::placeholder {
-    color: #555;
-}
+    .generate-btn {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      margin-bottom: 20px;
+      padding: 16px;
+      border: 0;
+      border-radius: 16px;
+      color: white;
+      background: var(--gradient-primary);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
 
-/* Button with RGB Border */
-.rgb-btn {
-    width: 100%;
-    max-width: 340px;
-    padding: 3px;
-    border-radius: 18px;
-    background: linear-gradient(90deg, #ff4d6d, #ff8a4d, #ffd93d, #6bcb77, #4d96ff, #9b59ff, #ff4d6d);
-    background-size: 300% 100%;
-    animation: rgbMove 4s linear infinite;
-    border: none;
-    cursor: pointer;
-    display: block;
-    margin: 0 auto;
-    transition: all 0.3s;
-}
+    .generate-btn::before {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      content: "";
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
 
-.btn-inner {
-    background: #0a0a0f;
-    color: #fff;
-    display: block;
-    padding: 14px;
-    border-radius: 16px;
-    font-weight: 700;
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: all 0.3s;
-}
+    .generate-btn:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        0 15px 40px rgba(102, 126, 234, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
 
-.rgb-btn:hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 40px rgba(155, 89, 255, 0.2);
-}
+    .generate-btn:hover::before {
+      left: 100%;
+    }
 
-.rgb-btn:hover .btn-inner {
-    background: #111118;
-}
+    .generate-btn:disabled {
+      cursor: wait;
+      opacity: 0.65;
+      transform: none;
+    }
 
-/* Result Box with RGB Border */
-.result-box {
-    width: 100%;
-    max-width: 340px;
-    margin: 16px auto 0;
-    padding: 3px;
-    border-radius: 18px;
-    background: linear-gradient(90deg, #ff4d6d, #ff8a4d, #ffd93d, #6bcb77, #4d96ff, #9b59ff, #ff4d6d);
-    background-size: 300% 100%;
-    animation: rgbMove 5s linear infinite;
-    display: none;
-    box-shadow: 0 0 40px rgba(155, 89, 255, 0.05);
-}
+    .loading {
+      display: none;
+      margin: 20px 0;
+      color: #667eea;
+      font-size: 28px;
+      text-align: center;
+    }
 
-.result-inner {
-    background: #0a0a0f;
-    border-radius: 16px;
-    padding: 16px;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-align: center;
-}
+    .loading.visible {
+      display: block;
+    }
 
-#codeBox {
-    letter-spacing: 4px;
-    color: #fff;
-    cursor: default;
-}
+    .loading i {
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
 
-/* Small decorative elements */
-.divider {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    margin: 4px 0 10px 0;
-    opacity: 0.3;
-}
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
 
-.divider span {
-    width: 30px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-}
+    .code-display {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 60px;
+      margin-bottom: 20px;
+      padding: 20px;
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      color: var(--success-color);
+      background: rgba(255, 255, 255, 0.03);
+      font-family: "Courier New", monospace;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-align: center;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
 
-.badge-group {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 4px;
-}
+    .code-display.error {
+      color: #ff6b6b;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
 
-.badge {
-    padding: 4px 14px;
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: 0.6rem;
-    letter-spacing: 0.5px;
-    color: #888;
-    font-weight: 500;
-}
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      gap: 10px;
+      margin-top: 20px;
+      padding: 16px;
+      border: 1.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.05);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+    }
 
-@media (max-width: 480px) {
-    .card { padding: 24px 16px; }
-    h1 { font-size: 1.7rem; }
-    h1:last-of-type { font-size: 1.4rem; }
-}
-</style>
+    .copy-btn:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      color: white;
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .copy-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+    }
+
+    .footer {
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+
+    .footer p {
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+
+    .footer p:hover {
+      opacity: 1;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        max-width: 400px;
+        padding: 25px;
+        border-radius: 20px;
+      }
+
+      .logo {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+      }
+
+      .title {
+        font-size: 26px;
+      }
+
+      .code-display {
+        min-height: 55px;
+        padding: 18px;
+        font-size: 17px;
+      }
+    }
+  </style>
 </head>
 <body>
+  <main class="container">
+    <header class="header">
+      <div class="logo">
+        <img src="https://files.catbox.moe/npizv8.jpg" alt="FAIZAN-MD">
+      </div>
+      <h1 class="title">𝐅αɪᴢαɴ-𝐌ᴅ🫀</h1>
+      <p class="subtitle">Link your WhatsApp device</p>
 
-<div class="card">
+      <nav class="social-icons" aria-label="Social links">
+        <a href="https://youtube.com/@arslanmdofficial" target="_blank" rel="noopener noreferrer" class="youtube" aria-label="YouTube">
+          <i class="fab fa-youtube"></i>
+        </a>
+        <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" class="telegram" aria-label="Facebook">
+          <i class="fab fa-facebook"></i>
+        </a>
+        <a href="https://wa.me/" target="_blank" rel="noopener noreferrer" class="whatsapp" aria-label="WhatsApp">
+          <i class="fab fa-whatsapp"></i>
+        </a>
+        <a href="https://github.com/Faizan-MD007/FAIZAN-MD-MINI" target="_blank" rel="noopener noreferrer" class="github" aria-label="GitHub">
+          <i class="fab fa-github"></i>
+        </a>
+      </nav>
+    </header>
 
-<h1 class="rgb-text">👑 Faizan MD 👑</h1>
-<h1 class="rgb-text">PAIR CODE</h1>
+    <section class="mode-pill" aria-label="Pairing mode">
+      <div class="mode-option"><i class="fas fa-key"></i> Pair Code</div>
+    </section>
 
-<p class="status rgb-text">TYPE YOUR WHATSAPP NUMBER</p>
+    <section class="input-group">
+      <label class="input-label" for="mobileNumber">Enter your WhatsApp number with country code</label>
+      <input
+        type="text"
+        id="mobileNumber"
+        class="input-field"
+        placeholder="+923266105873"
+        inputmode="tel"
+        autocomplete="tel"
+        pattern="[+][0-9]{10,}"
+        title="Please enter country code starting with + followed by number"
+      >
+    </section>
 
-<!-- Input with RGB Border -->
-<div class="rgb-box">
-    <input type="text" id="number" placeholder="923237045919">
-</div>
+    <button class="generate-btn" id="submit" type="button">
+      <i class="fas fa-key"></i> Generate Pair Code
+    </button>
 
-<!-- Button with RGB Border -->
-<button class="rgb-btn" onclick="getCode()">
-    <span class="btn-inner">GET PAIR CODE</span>
-</button>
+    <div class="loading" id="loading" aria-live="polite">
+      <i class="fas fa-spinner"></i>
+    </div>
 
-<!-- Result Box with RGB Border -->
-<div class="result-box" id="borderBox">
-    <div class="result-inner" id="codeBox">----</div>
-</div>
+    <div class="code-display" id="codeDisplay" aria-live="polite">Your pair code will appear here</div>
 
-<!-- Footer Badges -->
-<div class="badge-group">
-    <span class="badge">🤖 WHATSAPP BOT</span>
-    <span class="badge">⚡ FAIZAN-MD</span>
-    <span class="badge">✨ 2026</span>
-</div>
+    <button class="copy-btn" id="copy" type="button" disabled>
+      <i class="fas fa-copy"></i> Copy Code
+    </button>
 
-<p class="status rgb-text" style="margin-top: 10px; font-size: 0.6rem;">MADE BY FAIZAN-MD · MINI BOT EDITION</p>
+    <footer class="footer">
+      <p>© 2026 <span style="color:#f97316;font-weight:700;">faizan-md</span>. All rights reserved.</p>
+    </footer>
+  </main>
 
-</div>
+  <script>
+    const numberInput = document.getElementById("mobileNumber");
+    const submitButton = document.getElementById("submit");
+    const codeDisplay = document.getElementById("codeDisplay");
+    const copyButton = document.getElementById("copy");
+    const loading = document.getElementById("loading");
 
-<script>
-// ===== EXACT ORIGINAL FUNCTIONALITY - NO CHANGES =====
-async function getCode() {
-    const num = document.getElementById("number").value.replace(/[^0-9]/g, '');
-    const codeBox = document.getElementById("codeBox");
-    const borderBox = document.getElementById("borderBox");
+    function showMessage(message, isError = false) {
+      codeDisplay.textContent = message;
+      codeDisplay.classList.toggle("error", isError);
+      copyButton.disabled = true;
+    }
 
-    // Agar number khali hai
-    if (!num) {
-        borderBox.style.display = "block";
-        codeBox.style.letterSpacing = "normal";
-        codeBox.style.color = "#ff4d6d";
-        codeBox.innerText = "APNA WHATSAPP NUMBER LIKHE";
+    async function getCode() {
+      const number = numberInput.value.replace(/[^0-9]/g, "");
+
+      if (!number) {
+        showMessage("Please enter your WhatsApp number", true);
+        numberInput.focus();
         return;
-    }
+      }
 
-    // Loading State
-    borderBox.style.display = "block";
-    codeBox.style.letterSpacing = "normal";
-    codeBox.style.color = "#9b59ff";
-    codeBox.innerText = "CONNECTING.....";
+      submitButton.disabled = true;
+      copyButton.disabled = true;
+      loading.classList.add("visible");
+      codeDisplay.classList.remove("error");
+      codeDisplay.textContent = "";
 
-    try {
-        const res = await fetch(`/code?number=${num}`);
-        const data = await res.json();
-        
+      try {
+        const response = await fetch(`/code?number=${encodeURIComponent(number)}`);
+        const data = await response.json();
+
         if (data.code) {
-            codeBox.style.letterSpacing = "4px";
-            codeBox.style.color = "#fff";
-            codeBox.innerText = data.code;
+          codeDisplay.textContent = `CODE: ${data.code}`;
+          copyButton.disabled = false;
         } else {
-            codeBox.style.color = "#ff4d6d";
-            codeBox.innerText = "SERVER FULL";
+          showMessage(data.error || "Service Unavailable", true);
         }
-    } catch (e) {
-        codeBox.style.color = "#ff4d6d";
-        codeBox.innerText = "SERVER IS FULL";
+      } catch (error) {
+        showMessage("Error generating code. Please try again.", true);
+      } finally {
+        loading.classList.remove("visible");
+        submitButton.disabled = false;
+      }
     }
-}
 
-// Enter key support
-document.getElementById("number").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        getCode();
+    async function copyCode() {
+      const code = codeDisplay.textContent.replace(/^CODE:\s*/, "").trim();
+      if (!code || copyButton.disabled) return;
+
+      try {
+        await navigator.clipboard.writeText(code);
+        const originalText = copyButton.innerHTML;
+        copyButton.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        window.setTimeout(() => {
+          copyButton.innerHTML = originalText;
+        }, 2000);
+      } catch (error) {
+        showMessage("Unable to copy the code", true);
+      }
     }
-});
-</script>
 
+    submitButton.addEventListener("click", getCode);
+    copyButton.addEventListener("click", copyCode);
+    numberInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") getCode();
+    });
+  </script>
 </body>
 </html>
