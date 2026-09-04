@@ -112,11 +112,15 @@ const createSerial = (size) => crypto.randomBytes(size).toString('hex').slice(0,
 // tap produced an empty body, `isCmd` was false, and the bot stayed silent even
 // though the buttons rendered correctly.
 const nativeFlowId = (message) => {
-    const params = message?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+    const interactive = message?.interactiveResponseMessage || message?.message?.interactiveResponseMessage;
+    const nativeFlow = interactive?.nativeFlowResponseMessage || message?.nativeFlowResponseMessage;
+    const params = nativeFlow?.paramsJson || nativeFlow?.paramsJSON;
     if (!params) return '';
     try {
-        const parsed = JSON.parse(params);
-        return parsed.id || parsed.selectedId || parsed.selectedRowId || parsed.display_text || '';
+        const parsed = typeof params === 'string' ? JSON.parse(params) : params;
+        const payload = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+        return payload?.id || payload?.buttonId || payload?.selectedId ||
+            payload?.selectedRowId || payload?.display_text || '';
     } catch (e) {
         arslanLog(`Button reply paramsJson parse failed: ${e.message}`, 'warning');
         return '';
@@ -135,6 +139,7 @@ const getMessageBody = (message, type) => {
         || message.buttonsResponseMessage?.selectedButtonId
         || message.templateButtonReplyMessage?.selectedId
         || message.listResponseMessage?.singleSelectReply?.selectedRowId
+        || message.buttonReplyMessage?.selectedId
         || nativeFlowId(message)
         || '';
 };

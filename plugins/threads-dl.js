@@ -30,18 +30,33 @@ async function fetchThreadsMedia(url) {
 }
 
 function getMediaUrl(result, type) {
-    const direct = type === 'image'
-        ? [result.image_url, result.image, result.photo_url, result.photo, result.picture]
-        : [result.video_url, result.video, result.download_url, result.video_download_url];
-
-    const generic = [result.download_url, result.media_url, result.url, result.media];
+    const payload = Array.isArray(result) ? result[0] : result;
+    const direct = type === 'video'
+        ? [payload?.video_url, payload?.video, payload?.download_url, payload?.video_download_url]
+        : [];
+    const generic = [payload?.download_url, payload?.media_url, payload?.url, payload?.media];
     return mediaUrlValue(firstMediaUrl(...direct, ...generic));
+}
+
+function getThreadsCaption(result) {
+    const payload = Array.isArray(result) ? result[0] : result;
+    const candidates = [
+        payload?.caption,
+        payload?.text,
+        payload?.description,
+        payload?.title,
+        payload?.post?.caption,
+        payload?.post?.text,
+        payload?.data?.caption
+    ];
+    return candidates.find((value) => typeof value === 'string' && value.trim()) ||
+        'Threads caption is not available for this post.';
 }
 
 cmd({
     pattern: "threads",
     alias: ["thread", "thdl"],
-    desc: "Download Threads videos and images",
+    desc: "Download Threads video or caption",
     react: "🧵",
     category: "download",
     filename: __filename
@@ -62,7 +77,7 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─᛭*
 *│ ╌─̇─̣⊰ ${config.BOT_NAME || '𝐅𝐀𝐈𝐙𝐀𝐍-𝐌𝐃'} ⊱┈─̇─̣╌*
 *│─̇─̣┄┄┄┄┄┄┄┄┄┄┄┄┄─̇─̣*
-*│❀ 🧵 𝐓𝐢𝐭𝐥𝐞:* Threads Media
+*│❀ 🧵 𝐓𝐢𝐭𝐥𝐞:* Threads Video / Caption
 *│❀ ⚙️ 𝐒𝐭𝐚𝐭𝐮𝐬:* Ready
 *╰┄─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─̇─̣─᛭*
 
@@ -73,7 +88,7 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
             text: infoText,
             buttons: [
                 { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}thgrab ${url} video` },
-                { display_text: '🖼️ 𝐈мαgє', id: `${prefix}thgrab ${url} image` }
+                { display_text: '📝 𝐂αρтιση', id: `${prefix}thgrab ${url} caption` }
             ]
         }, mek);
 
@@ -85,7 +100,7 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
     }
 });
 
-// Hidden handler for the actual video/image download.
+// Hidden handler for the actual video/caption action.
 cmd({
     pattern: "thgrab",
     dontAddCommandList: true,
@@ -94,21 +109,19 @@ cmd({
     if (!args.length) return;
 
     const url = args[0];
-    const mediaType = (args[1] || 'video').toLowerCase() === 'image' ? 'image' : 'video';
+    const mediaType = (args[1] || 'video').toLowerCase() === 'caption' ? 'caption' : 'video';
 
     try {
         await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });
 
         const result = await fetchThreadsMedia(url);
-        const mediaUrl = getMediaUrl(result, mediaType);
-        if (!mediaUrl) throw new Error(`No ${mediaType} URL found in API response`);
-
-        if (mediaType === 'image') {
+        if (mediaType === 'caption') {
             await conn.sendMessage(from, {
-                image: { url: mediaUrl },
-                caption: `*🧵 THREADS IMAGE DOWNLOADED*\n\n${config.BOT_FOOTER || ''}`
+                text: `*🧵 THREADS CAPTION*\n\n${getThreadsCaption(result)}\n\n${config.BOT_FOOTER || ''}`
             }, { quoted: mek });
         } else {
+            const mediaUrl = getMediaUrl(result, 'video');
+            if (!mediaUrl) throw new Error('No video URL found in API response');
             await conn.sendMessage(from, {
                 video: { url: mediaUrl },
                 mimetype: "video/mp4",
