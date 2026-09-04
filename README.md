@@ -30,10 +30,12 @@ Ye **mini** version hai — SESSION_ID file ki jagah:
 | `PREFIX` | ❌ | `.` |
 | `SESSION_ID` | ❌ | `FAIZAN-MD-MINI` |
 | `WORK_TYPE` | ❌ | `public` |
+| `QASIM_API_KEY` | ❌ | `qasim-dev` |
 
 4. Deploy karo. Server chalne par browser mein kholo: `https://<your-app-url>/pair`
 5. Apna WhatsApp number daalo → code copy karo → WhatsApp → **Linked Devices → Link a Device → Link with phone number** → code paste.
-6. Ho gaya ✅ — bot connect ho jayega.
+6. Threads downloader ke liye `QASIM_API_KEY` environment variable set karo. Custom key na ho to plugin documented default `qasim-dev` use karega. `.threads` command ke baad Video ya Image button select kar sakte ho.
+7. Ho gaya ✅ — bot connect ho jayega.
 
 > Local test: `npm install` phir `npm start`, aur `http://localhost:8000/pair` kholo.
 
