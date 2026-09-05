@@ -6,6 +6,24 @@ const config = require('../config');
 const THREADS_API_URL = 'https://api.qasimdev.dpdns.org/api/threads/download';
 const THREADS_API_KEY = process.env.QASIM_API_KEY || process.env.API_KEY || 'qasim-dev';
 const THREADS_HOST_PATTERN = /(?:threads\.net|threads\.com)/i;
+const pendingThreads = new Map();
+const PENDING_TTL_MS = 10 * 60 * 1000;
+
+function createThreadToken(from, url) {
+    const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    pendingThreads.set(`${from}:${token}`, { url, expiresAt: Date.now() + PENDING_TTL_MS });
+    for (const [key, item] of pendingThreads) {
+        if (!item || item.expiresAt < Date.now()) pendingThreads.delete(key);
+    }
+    return token;
+}
+
+function resolveThreadUrl(from, value) {
+    if (THREADS_HOST_PATTERN.test(value || '')) return value;
+    const item = pendingThreads.get(`${from}:${value}`);
+    if (!item || item.expiresAt < Date.now()) return '';
+    return item.url;
+}
 
 const firstMediaUrl = (...values) => values.find((value) => {
     if (typeof value === 'string') return /^https?:\/\//i.test(value);
@@ -70,8 +88,9 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
 
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
 
-        // Validate the URL through the same API used by the download buttons.
+        // Validate the URL before creating a short, reliable button payload.
         await fetchThreadsMedia(url);
+        const token = createThreadToken(from, url);
 
         const infoText = `
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─᛭*
@@ -87,8 +106,8 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
             title: '🧵 THREADS DOWNLOADER',
             text: infoText,
             buttons: [
-                { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}thgrab ${url} video` },
-                { display_text: '📝 𝐂αρтιση', id: `${prefix}thgrab ${url} caption` }
+                { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}thgrab ${token} video` },
+                { display_text: '📝 𝐂αρтιση', id: `${prefix}thgrab ${token} caption` }
             ]
         }, mek);
 
@@ -108,8 +127,9 @@ cmd({
 }, async (conn, mek, m, { from, args, reply }) => {
     if (!args.length) return;
 
-    const url = args[0];
+    const url = resolveThreadUrl(from, args[0]);
     const mediaType = (args[1] || 'video').toLowerCase() === 'caption' ? 'caption' : 'video';
+    if (!url) return reply('❌ This Threads menu expired. Send the Threads link again.');
 
     try {
         await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });

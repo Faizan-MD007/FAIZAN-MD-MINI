@@ -112,19 +112,29 @@ const createSerial = (size) => crypto.randomBytes(size).toString('hex').slice(0,
 // tap produced an empty body, `isCmd` was false, and the bot stayed silent even
 // though the buttons rendered correctly.
 const nativeFlowId = (message) => {
-    const interactive = message?.interactiveResponseMessage || message?.message?.interactiveResponseMessage;
-    const nativeFlow = interactive?.nativeFlowResponseMessage || message?.nativeFlowResponseMessage;
-    const params = nativeFlow?.paramsJson || nativeFlow?.paramsJSON;
-    if (!params) return '';
-    try {
-        const parsed = typeof params === 'string' ? JSON.parse(params) : params;
-        const payload = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-        return payload?.id || payload?.buttonId || payload?.selectedId ||
-            payload?.selectedRowId || payload?.display_text || '';
-    } catch (e) {
-        arslanLog(`Button reply paramsJson parse failed: ${e.message}`, 'warning');
+    const seen = new Set();
+    const visit = (value, depth = 0) => {
+        if (!value || depth > 6 || typeof value !== 'object' || seen.has(value)) return '';
+        seen.add(value);
+        const params = value.paramsJson || value.paramsJSON;
+        if (params) {
+            try {
+                const parsed = typeof params === 'string' ? JSON.parse(params) : params;
+                const payload = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+                const id = payload?.id || payload?.buttonId || payload?.selectedId ||
+                    payload?.selectedRowId || payload?.display_text;
+                if (id) return id;
+            } catch (e) {
+                arslanLog(`Button reply paramsJson parse failed: ${e.message}`, 'warning');
+            }
+        }
+        for (const child of Object.values(value)) {
+            const id = visit(child, depth + 1);
+            if (id) return id;
+        }
         return '';
-    }
+    };
+    return visit(message);
 };
 
 // Pull command text out of ANY message shape, including every button-reply variant.
