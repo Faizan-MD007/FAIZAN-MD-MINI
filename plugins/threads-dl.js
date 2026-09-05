@@ -47,25 +47,39 @@ async function fetchThreadsMedia(url) {
     return result;
 }
 
-function getMediaUrl(result, type) {
-    const payload = Array.isArray(result) ? result[0] : result;
-    const direct = type === 'video'
-        ? [payload?.video_url, payload?.video, payload?.download_url, payload?.video_download_url]
-        : [];
-    const generic = [payload?.download_url, payload?.media_url, payload?.url, payload?.media];
-    return mediaUrlValue(firstMediaUrl(...direct, ...generic));
+function getPayload(result) {
+    if (Array.isArray(result)) return result[0] || {};
+    return result?.data && typeof result.data === 'object' ? result.data : (result || {});
+}
+
+function getMediaUrl(result) {
+    const payload = getPayload(result);
+    const videos = Array.isArray(payload.videos) ? payload.videos : [];
+    const videoCandidates = videos.flatMap((item) => [
+        item?.directUrl,
+        item?.directDownload,
+        item?.download,
+        item?.url
+    ]);
+    return mediaUrlValue(firstMediaUrl(
+        ...videoCandidates,
+        payload.video_url,
+        payload.video,
+        payload.videoUrl,
+        payload.directDownload,
+        payload.download
+    ));
 }
 
 function getThreadsCaption(result) {
-    const payload = Array.isArray(result) ? result[0] : result;
+    const payload = getPayload(result);
     const candidates = [
-        payload?.caption,
-        payload?.text,
-        payload?.description,
-        payload?.title,
-        payload?.post?.caption,
-        payload?.post?.text,
-        payload?.data?.caption
+        payload.description,
+        payload.caption,
+        payload.text,
+        payload.title,
+        payload.post?.caption,
+        payload.post?.text
     ];
     return candidates.find((value) => typeof value === 'string' && value.trim()) ||
         'Threads caption is not available for this post.';
@@ -88,9 +102,10 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
 
         await conn.sendMessage(from, { react: { text: "⏳", key: mek.key } });
 
-        // Validate the URL before creating a short, reliable button payload.
-        await fetchThreadsMedia(url);
+        // Read the API response once. It contains data.videos[] and description.
+        const result = await fetchThreadsMedia(url);
         const token = createThreadToken(from, url);
+        const caption = getThreadsCaption(result);
 
         const infoText = `
 *╭ׂ┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣┄─̇─̣─᛭*
@@ -106,8 +121,8 @@ async (conn, mek, m, { from, args, reply, prefix }) => {
             title: '🧵 THREADS DOWNLOADER',
             text: infoText,
             buttons: [
-                { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}thgrab ${token} video` },
-                { display_text: '📝 𝐂αρтιση', id: `${prefix}thgrab ${token} caption` }
+                { display_text: '🎬 𝐕ι∂єσ', id: `${prefix}thgrab ${token}` },
+                { display_text: '📋 𝐂σρу Cαρтιση', copy_code: caption }
             ]
         }, mek);
 
@@ -128,26 +143,19 @@ cmd({
     if (!args.length) return;
 
     const url = resolveThreadUrl(from, args[0]);
-    const mediaType = (args[1] || 'video').toLowerCase() === 'caption' ? 'caption' : 'video';
     if (!url) return reply('❌ This Threads menu expired. Send the Threads link again.');
 
     try {
         await conn.sendMessage(from, { react: { text: "📥", key: mek.key } });
 
         const result = await fetchThreadsMedia(url);
-        if (mediaType === 'caption') {
-            await conn.sendMessage(from, {
-                text: `*🧵 THREADS CAPTION*\n\n${getThreadsCaption(result)}\n\n${config.BOT_FOOTER || ''}`
-            }, { quoted: mek });
-        } else {
-            const mediaUrl = getMediaUrl(result, 'video');
-            if (!mediaUrl) throw new Error('No video URL found in API response');
-            await conn.sendMessage(from, {
-                video: { url: mediaUrl },
-                mimetype: "video/mp4",
-                caption: `*🧵 THREADS VIDEO DOWNLOADED*\n\n${config.BOT_FOOTER || ''}`
-            }, { quoted: mek });
-        }
+        const mediaUrl = getMediaUrl(result);
+        if (!mediaUrl) throw new Error('No video found in this Threads share post');
+        await conn.sendMessage(from, {
+            video: { url: mediaUrl },
+            mimetype: "video/mp4",
+            caption: `*🧵 THREADS VIDEO DOWNLOADED*\n\n${config.BOT_FOOTER || ''}`
+        }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: "✅", key: mek.key } });
     } catch (err) {
